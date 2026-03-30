@@ -1,8 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#nullable enable
-
 using System;
 using System.Collections.Generic;
 using NuGet.Common;
@@ -12,6 +10,11 @@ namespace NuGet.PackageManagement
 {
     public record AuditCheckResult
     {
+        internal static readonly AuditCheckResult NoopAuditResult = new AuditCheckResult(Array.Empty<ILogMessage>())
+        {
+            IsAuditEnabled = false,
+        };
+
         public IReadOnlyList<ILogMessage> Warnings { get; }
         internal bool IsAuditEnabled { get; set; } = true;
 

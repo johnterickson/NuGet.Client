@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -336,7 +338,7 @@ namespace NuGet.PackageManagement.Test.NuGetPackageManagerTests
         {
             // Arrange
             var sourceRepositoryProvider = TestSourceRepositoryUtility.CreateV3OnlySourceRepositoryProvider();
-            using (var testSolutionManager = new TestSolutionManager())
+            using (var testSolutionManager = new TestVSSolutionManager())
             {
                 var testSettings = NullSettings.Instance;
                 var token = CancellationToken.None;
@@ -386,13 +388,13 @@ namespace NuGet.PackageManagement.Test.NuGetPackageManagerTests
             }
         }
 
-        [Fact]
+        [Fact(Skip = "https://github.com/NuGet/Home/issues/10212")]
         public async Task ExecuteNuGetProjectActionsAsync_MixedProjects()
         {
             // Arrange
             var sourceRepositoryProvider = TestSourceRepositoryUtility.CreateV3OnlySourceRepositoryProvider();
             using (var settingsdir = TestDirectory.Create())
-            using (var testSolutionManager = new TestSolutionManager())
+            using (var testSolutionManager = new TestVSSolutionManager())
             {
                 var Settings = new Settings(settingsdir);
                 foreach (var source in sourceRepositoryProvider.GetRepositories())

@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,8 +16,11 @@ using NuGet.Frameworks;
 using NuGet.Packaging;
 using NuGet.Packaging.Licenses;
 using NuGet.ProjectManagement;
+using NuGet.ProjectModel;
+using NuGet.Shared;
 using NuGet.Test.Utility;
 using NuGet.Versioning;
+using Test.Utility;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -57,7 +62,7 @@ namespace Dotnet.Integration.Test
                     <None Include=""abc.dll"" Pack=""True""  PackagePath=""lib"" />
                     <Content Include=""abc.txt"" Pack=""True"" />
 </ItemGroup>";
-                    ProjectFileUtils.SetTargetFrameworkForProject(xml, "TargetFramework", Constants.ProjectTargetFramework);
+                    ProjectFileUtils.SetTargetFrameworkForProject(xml, "TargetFramework", TestConstants.ProjectTargetFramework);
                     ProjectFileUtils.AddCustomXmlToProjectRoot(xml, itemGroup);
                     ProjectFileUtils.WriteXmlToFile(xml, stream);
                 }
@@ -165,9 +170,9 @@ namespace Dotnet.Integration.Test
                 _dotnetFixture.CreateDotnetNewProject(Path.Combine(testDirectory.Path, reference2Folder), referencedProject2, "classlib", testOutputHelper: _testOutputHelper);
 
                 _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"new sln -n {solutionName}", testOutputHelper: _testOutputHelper);
-                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.sln add {projectFileRelativ}", testOutputHelper: _testOutputHelper);
-                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.sln add {referencedProject1RelativDir}", testOutputHelper: _testOutputHelper);
-                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.sln add {referencedProject2RelativDir}", testOutputHelper: _testOutputHelper);
+                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.slnx add {projectFileRelativ}", testOutputHelper: _testOutputHelper);
+                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.slnx add {referencedProject1RelativDir}", testOutputHelper: _testOutputHelper);
+                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.slnx add {referencedProject2RelativDir}", testOutputHelper: _testOutputHelper);
 
                 var projectFile = Path.Combine(testDirectory.Path, projectFileRelativ);
                 using (var stream = new FileStream(projectFile, FileMode.Open, FileAccess.ReadWrite))
@@ -221,9 +226,9 @@ namespace Dotnet.Integration.Test
                 _dotnetFixture.CreateDotnetNewProject(Path.Combine(testDirectory.Path, reference2Folder), referencedProject2, "classlib", testOutputHelper: _testOutputHelper);
 
                 _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"new sln -n {solutionName}", testOutputHelper: _testOutputHelper);
-                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.sln add {projectFileRelativ}", testOutputHelper: _testOutputHelper);
-                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.sln add {referencedProject1RelativDir}", testOutputHelper: _testOutputHelper);
-                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.sln add {referencedProject2RelativDir}", testOutputHelper: _testOutputHelper);
+                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.slnx add {projectFileRelativ}", testOutputHelper: _testOutputHelper);
+                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.slnx add {referencedProject1RelativDir}", testOutputHelper: _testOutputHelper);
+                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.slnx add {referencedProject2RelativDir}", testOutputHelper: _testOutputHelper);
 
                 var projectFile = Path.Combine(testDirectory.Path, projectFileRelativ);
                 using (var stream = new FileStream(projectFile, FileMode.Open, FileAccess.ReadWrite))
@@ -738,7 +743,7 @@ namespace Dotnet.Integration.Test
                 Directory.CreateDirectory(pkgsPath);
                 Directory.CreateDirectory(basePackagePath);
 
-                string tfm = Constants.DefaultTargetFramework.GetShortFolderName();
+                string tfm = TestConstants.DefaultTargetFramework.GetShortFolderName();
 
                 // Base Package
                 var basePackageProjectContent = @$"<Project Sdk='Microsoft.NET.Sdk'>
@@ -978,8 +983,8 @@ namespace Dotnet.Integration.Test
         [PlatformTheory(Platform.Windows)]
         [InlineData("TargetFramework", "netstandard1.4")]
         [InlineData("TargetFrameworks", "netstandard1.4;net46")]
-        [InlineData("TargetFramework", Constants.ProjectTargetFramework)]
-        [InlineData("TargetFrameworks", $"netstandard1.4;{Constants.ProjectTargetFramework}")]
+        [InlineData("TargetFramework", TestConstants.ProjectTargetFramework)]
+        [InlineData("TargetFrameworks", $"netstandard1.4;{TestConstants.ProjectTargetFramework}")]
         public void PackCommand_PackProject_ExactVersionOverrideProjectRefVersionInMsbuild(string tfmProperty, string tfmValue)
         {
             // Arrange
@@ -1053,12 +1058,12 @@ namespace Dotnet.Integration.Test
                             NuGetFrameworkSorter.Instance)
                         .ToList();
 
-                    Assert.Equal(tfmValue.Split(';').Count(),
+                    Assert.Equal(tfmValue.Split(';').Length,
                         dependencyGroups.Count);
                     foreach (var depGroup in dependencyGroups)
                     {
                         var packages = depGroup.Packages.ToList();
-                        var package = packages.Where(t => t.Id.Equals("ClassLibrary2")).First();
+                        var package = packages.First(t => t.Id.Equals("ClassLibrary2"));
                         Assert.Equal(new VersionRange(new NuGetVersion("1.2.3-alpha"), true, new NuGetVersion("1.2.3-alpha"), true), package.VersionRange);
                     }
                 }
@@ -1068,8 +1073,8 @@ namespace Dotnet.Integration.Test
         [PlatformTheory(Platform.Windows)]
         [InlineData("TargetFramework", "netstandard1.4")]
         [InlineData("TargetFrameworks", "netstandard1.4;net46")]
-        [InlineData("TargetFramework", Constants.ProjectTargetFramework)]
-        [InlineData("TargetFrameworks", $"netstandard1.4;{Constants.ProjectTargetFramework}")]
+        [InlineData("TargetFramework", TestConstants.ProjectTargetFramework)]
+        [InlineData("TargetFrameworks", $"netstandard1.4;{TestConstants.ProjectTargetFramework}")]
         public void PackCommand_PackProject_GetsProjectRefVersionFromMsbuild(string tfmProperty, string tfmValue)
         {
             // Arrange
@@ -1130,12 +1135,12 @@ namespace Dotnet.Integration.Test
                             NuGetFrameworkSorter.Instance)
                         .ToList();
 
-                    Assert.Equal(tfmValue.Split(';').Count(),
+                    Assert.Equal(tfmValue.Split(';').Length,
                         dependencyGroups.Count);
                     foreach (var depGroup in dependencyGroups)
                     {
                         var packages = depGroup.Packages.ToList();
-                        var package = packages.Where(t => t.Id.Equals("ClassLibrary2")).First();
+                        var package = packages.First(t => t.Id.Equals("ClassLibrary2"));
                         Assert.Equal(new VersionRange(new NuGetVersion("1.2.3-alpha")), package.VersionRange);
                     }
                 }
@@ -1145,8 +1150,8 @@ namespace Dotnet.Integration.Test
         [PlatformTheory(Platform.Windows)]
         [InlineData("TargetFramework", "netstandard1.4")]
         [InlineData("TargetFrameworks", "netstandard1.4;net46")]
-        [InlineData("TargetFramework", Constants.ProjectTargetFramework)]
-        [InlineData("TargetFrameworks", $"netstandard1.4;{Constants.ProjectTargetFramework}")]
+        [InlineData("TargetFramework", TestConstants.ProjectTargetFramework)]
+        [InlineData("TargetFrameworks", $"netstandard1.4;{TestConstants.ProjectTargetFramework}")]
         public void PackCommand_PackProject_GetPackageVersionDependsOnWorks(string tfmProperty, string tfmValue)
         {
             // Arrange
@@ -1215,12 +1220,12 @@ namespace Dotnet.Integration.Test
                             NuGetFrameworkSorter.Instance)
                         .ToList();
 
-                    Assert.Equal(tfmValue.Split(';').Count(),
+                    Assert.Equal(tfmValue.Split(';').Length,
                         dependencyGroups.Count);
                     foreach (var depGroup in dependencyGroups)
                     {
                         var packages = depGroup.Packages.ToList();
-                        var package = packages.Where(t => t.Id.Equals("ClassLibrary2")).First();
+                        var package = packages.First(t => t.Id.Equals("ClassLibrary2"));
                         Assert.Equal(new VersionRange(new NuGetVersion("1.2.3-alpha")), package.VersionRange);
                     }
                 }
@@ -1899,11 +1904,11 @@ namespace Dotnet.Integration.Test
 
                     if (expectedIncludeString == null)
                     {
-                        Assert.True(contentFiles.Count() == 0);
+                        Assert.Equal(0, contentFiles.Length);
                     }
                     else
                     {
-                        Assert.True(contentFiles.Count() == 1);
+                        Assert.Equal(1, contentFiles.Length);
                         var contentFile = contentFiles[0];
                         Assert.Equal(expectedIncludeString, contentFile.Include);
                         Assert.Equal("Content", contentFile.BuildAction);
@@ -1991,12 +1996,12 @@ namespace Dotnet.Integration.Test
 
                     if (expectedIncludeString == null)
                     {
-                        Assert.True(contentFiles.Count() == 0);
+                        Assert.Equal(0, contentFiles.Length);
                     }
                     else
                     {
                         var expectedStrings = expectedIncludeString.Split(';');
-                        Assert.True(contentFiles.Count() == 2);
+                        Assert.Equal(2, contentFiles.Length);
                         var contentFileSet = contentFiles.Select(p => p.Include);
                         var files = nupkgReader.GetFiles("contentFiles");
                         foreach (var expected in expectedStrings)
@@ -2023,7 +2028,7 @@ namespace Dotnet.Integration.Test
                 using (var stream = new FileStream(projectFile, FileMode.Open, FileAccess.ReadWrite))
                 {
                     var xml = XDocument.Load(stream);
-                    ProjectFileUtils.SetTargetFrameworkForProject(xml, "TargetFramework", Constants.ProjectTargetFramework);
+                    ProjectFileUtils.SetTargetFrameworkForProject(xml, "TargetFramework", TestConstants.ProjectTargetFramework);
                     ProjectFileUtils.AddProperty(xml, "GeneratePackageOnBuild", "true");
                     ProjectFileUtils.AddProperty(xml, "NuspecOutputPath", "obj\\Debug");
 
@@ -2063,7 +2068,7 @@ namespace Dotnet.Integration.Test
 
                     var dependencyGroups = nuspecReader.GetDependencyGroups().ToList();
                     Assert.Equal(1, dependencyGroups.Count);
-                    Assert.Equal(Constants.ProjectTargetFramework, dependencyGroups[0].TargetFramework.GetShortFolderName());
+                    Assert.Equal(TestConstants.ProjectTargetFramework, dependencyGroups[0].TargetFramework.GetShortFolderName());
                     var packages = dependencyGroups[0].Packages.ToList();
                     Assert.Equal(1, packages.Count);
                     Assert.Equal("Newtonsoft.json", packages[0].Id);
@@ -2074,8 +2079,8 @@ namespace Dotnet.Integration.Test
                     // Validate the assets.
                     var libItems = nupkgReader.GetLibItems().ToList();
                     Assert.Equal(1, libItems.Count);
-                    Assert.Equal(Constants.ProjectTargetFramework, libItems[0].TargetFramework.GetShortFolderName());
-                    Assert.Equal(new[] { $"lib/{Constants.ProjectTargetFramework}/ClassLibrary1.dll" }, libItems[0].Items);
+                    Assert.Equal(TestConstants.ProjectTargetFramework, libItems[0].TargetFramework.GetShortFolderName());
+                    Assert.Equal(new[] { $"lib/{TestConstants.ProjectTargetFramework}/ClassLibrary1.dll" }, libItems[0].Items);
                 }
 
             }
@@ -2200,7 +2205,7 @@ namespace Dotnet.Integration.Test
 
                     // Validate the assets.
                     var libItems = nupkgReader.GetFiles("lib").ToList();
-                    Assert.Equal(count, libItems.Count());
+                    Assert.Equal(count, libItems.Count);
 
                     foreach (var framework in frameworksArray)
                     {
@@ -2637,7 +2642,7 @@ namespace ClassLibrary
                     var nuspecReader = nupkgReader.NuspecReader;
                     // Validate the assets.
                     var srcItems = nupkgReader.GetFiles("src").ToArray();
-                    Assert.True(srcItems.Length == 4);
+                    Assert.Equal(4, srcItems.Length);
                     Assert.Contains("src/ClassLibrary1/ClassLibrary1.csproj", srcItems);
                     Assert.Contains("src/ClassLibrary1/Class1.cs", srcItems);
                     Assert.Contains("src/ClassLibrary1/Extensions/ExtensionMethods.cs", srcItems);
@@ -3111,7 +3116,7 @@ namespace ClassLibrary
                     var items = new HashSet<string>(nupkgReader.GetFiles());
                     var expectedPaths = expectedTargetPaths.Split(';');
                     // we add 5 because of the 5 standard files present in the nupkg that won't change.
-                    Assert.Equal(items.Count(), expectedPaths.Length + 5);
+                    Assert.Equal(items.Count, expectedPaths.Length + 5);
                     foreach (var path in expectedPaths)
                     {
                         Assert.Contains(path, items);
@@ -3145,7 +3150,7 @@ namespace ClassLibrary
                 {
                     var xml = XDocument.Load(stream);
                     var frameworkProperty = "TargetFrameworks";
-                    if (targetFrameworks.Split(';').Count() == 1)
+                    if (targetFrameworks.Split(';').Length == 1)
                     {
                         frameworkProperty = "TargetFramework";
                     }
@@ -3186,7 +3191,7 @@ namespace ClassLibrary
                     foreach (var framework in expectedFrameworks)
                     {
                         var nugetFramework = NuGetFramework.Parse(framework);
-                        var frameworkSpecificGroup = frameworkItems.Where(t => t.TargetFramework.Equals(nugetFramework)).FirstOrDefault();
+                        var frameworkSpecificGroup = frameworkItems.FirstOrDefault(t => t.TargetFramework.Equals(nugetFramework));
                         if (pack)
                         {
                             Assert.True(frameworkSpecificGroup?.Items.Contains(referenceAssembly));
@@ -3258,7 +3263,7 @@ namespace ClassLibrary
                     var nuspecReader = nupkgReader.NuspecReader;
                     var contentFiles = nuspecReader.GetContentFiles().ToArray();
 
-                    Assert.True(contentFiles.Count() == 1);
+                    Assert.Equal(1, contentFiles.Length);
                     var contentFile = contentFiles[0];
                     Assert.Equal(expectedBuildAction, contentFile.BuildAction);
                 }
@@ -3290,9 +3295,9 @@ namespace ClassLibrary
                 _dotnetFixture.CreateDotnetNewProject(Path.Combine(testDirectory.Path, rederence2Folder), referencedProject2, "classlib -f netstandard2.0", testOutputHelper: _testOutputHelper);
 
                 _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"new sln -n {solutionName}", testOutputHelper: _testOutputHelper);
-                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.sln add {projectFileRelativ}", testOutputHelper: _testOutputHelper);
-                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.sln add {referencedProject1RelativDir}", testOutputHelper: _testOutputHelper);
-                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.sln add {referencedProject2RelativDir}", testOutputHelper: _testOutputHelper);
+                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.slnx add {projectFileRelativ}", testOutputHelper: _testOutputHelper);
+                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.slnx add {referencedProject1RelativDir}", testOutputHelper: _testOutputHelper);
+                _dotnetFixture.RunDotnetExpectSuccess(testDirectory.Path, $"sln {solutionName}.slnx add {referencedProject2RelativDir}", testOutputHelper: _testOutputHelper);
 
                 var projectFile = Path.Combine(testDirectory.Path, projectFileRelativ);
                 using (var stream = new FileStream(projectFile, FileMode.Open, FileAccess.ReadWrite))
@@ -3375,8 +3380,8 @@ namespace ClassLibrary
         [PlatformTheory(Platform.Windows)]
         [InlineData("TargetFramework", "netstandard1.4")]
         [InlineData("TargetFrameworks", "netstandard1.4;net46")]
-        [InlineData("TargetFramework", Constants.ProjectTargetFramework)]
-        [InlineData("TargetFrameworks", $"netstandard1.4;{Constants.ProjectTargetFramework}")]
+        [InlineData("TargetFramework", TestConstants.ProjectTargetFramework)]
+        [InlineData("TargetFrameworks", $"netstandard1.4;{TestConstants.ProjectTargetFramework}")]
         public void PackCommand_PackTargetHook_ExecutesBeforePack(string tfmProperty,
     string tfmValue)
         {
@@ -3418,8 +3423,8 @@ namespace ClassLibrary
         [PlatformTheory(Platform.Windows)]
         [InlineData("TargetFramework", "netstandard1.4")]
         [InlineData("TargetFrameworks", "netstandard1.4;net46")]
-        [InlineData("TargetFramework", Constants.ProjectTargetFramework)]
-        [InlineData("TargetFrameworks", $"netstandard1.4;{Constants.ProjectTargetFramework}")]
+        [InlineData("TargetFramework", TestConstants.ProjectTargetFramework)]
+        [InlineData("TargetFrameworks", $"netstandard1.4;{TestConstants.ProjectTargetFramework}")]
         public void PackCommand_PackTarget_IsIncremental(string tfmProperty, string tfmValue)
         {
             using (var testDirectory = _dotnetFixture.CreateTestDirectory())
@@ -4004,7 +4009,7 @@ namespace ClassLibrary
                             NuGetFrameworkSorter.Instance)
                         .ToList();
 
-                    Assert.Equal(expectedFrameworks.Where(t => !string.IsNullOrEmpty(t)).Count(),
+                    Assert.Equal(expectedFrameworks.Count(t => !string.IsNullOrEmpty(t)),
                         dependencyGroups.Count);
 
                     if (dependencyGroups.Count > 0)
@@ -4071,7 +4076,7 @@ namespace ClassLibrary
                 using (var stream = new FileStream(projectFile, FileMode.Open, FileAccess.ReadWrite))
                 {
                     var xml = XDocument.Load(stream);
-                    ProjectFileUtils.SetTargetFrameworkForProject(xml, "TargetFramework", Constants.ProjectTargetFramework);
+                    ProjectFileUtils.SetTargetFrameworkForProject(xml, "TargetFramework", TestConstants.ProjectTargetFramework);
                     ProjectFileUtils.AddProperty(xml, "DefaultAllowedOutputExtensionsInPackageBuildOutputFolder", ".dll");
                     ProjectFileUtils.AddProperty(xml, "GenerateDocumentationFile", "true");
                     ProjectFileUtils.WriteXmlToFile(xml, stream);
@@ -4091,8 +4096,8 @@ namespace ClassLibrary
                 using (var nupkgReader = new PackageArchiveReader(nupkgPath))
                 {
                     var allFiles = nupkgReader.GetFiles().ToList();
-                    Assert.Contains($"lib/{Constants.ProjectTargetFramework}/{projectName}.dll", allFiles);
-                    Assert.DoesNotContain($"lib/{Constants.ProjectTargetFramework}/{projectName}.xml", allFiles);
+                    Assert.Contains($"lib/{TestConstants.ProjectTargetFramework}/{projectName}.dll", allFiles);
+                    Assert.DoesNotContain($"lib/{TestConstants.ProjectTargetFramework}/{projectName}.xml", allFiles);
                     Assert.DoesNotContain(allFiles, f => f.EndsWith(".exe"));
                     Assert.DoesNotContain(allFiles, f => f.EndsWith(".winmd"));
                     Assert.DoesNotContain(allFiles, f => f.EndsWith(".json"));
@@ -4735,7 +4740,7 @@ namespace ClassLibrary
                     Assert.Equal(FrameworkConstants.CommonFrameworks.NetStandard20, libItems[0].TargetFramework);
                     Assert.Equal(new[] { "lib/netstandard2.0/ClassLibrary1.dll" }, libItems[0].Items);
                     Assert.Equal(new[] { "lib/netstandard2.0/ClassLibrary1.dll", "lib/netstandard2.0/ClassLibrary1.pdb" }, libSymItems[0].Items);
-                    Assert.True(symbolReader.GetEntry(symbolReader.NuspecReader.GetLicenseMetadata().License) != null);
+                    Assert.NotNull(symbolReader.GetEntry(symbolReader.NuspecReader.GetLicenseMetadata().License));
                 }
             }
         }
@@ -4816,7 +4821,7 @@ namespace ClassLibrary
         [PlatformTheory(Platform.Windows)]
         [InlineData("Microsoft.NETCore.App", "true", "netcoreapp3.0", "", "netcoreapp3.0")]
         [InlineData("Microsoft.NETCore.App", "false", "netcoreapp3.0", "", "")]
-        [InlineData("Microsoft.WindowsDesktop.App", "true", "netstandard2.1;netcoreapp3.0", "netcoreapp3.0", "netcoreapp3.0")]
+        [InlineData("Microsoft.WindowsDesktop.App", "true", "netstandard2.0;netcoreapp3.0", "netcoreapp3.0", "netcoreapp3.0")]
         [InlineData("Microsoft.WindowsDesktop.App;Microsoft.AspNetCore.App", "true;true", "netcoreapp3.0", "netcoreapp3.0", "netcoreapp3.0")]
         [InlineData("Microsoft.WindowsDesktop.App.WPF;Microsoft.WindowsDesktop.App.WindowsForms", "true;false", "netcoreapp3.0", "", "netcoreapp3.0")]
         public void PackCommand_PackProject_PacksFrameworkReferences(string frameworkReferences, string packForFrameworkRefs, string targetFrameworks, string conditionalFramework, string expectedTargetFramework)
@@ -4844,7 +4849,7 @@ namespace ClassLibrary
                 {
                     var xml = XDocument.Load(stream);
                     var frameworkProperty = "TargetFrameworks";
-                    if (targetFrameworks.Split(';').Count() == 1)
+                    if (targetFrameworks.Split(';').Length == 1)
                     {
                         frameworkProperty = "TargetFramework";
                     }
@@ -4906,7 +4911,7 @@ namespace ClassLibrary
                     foreach (var framework in expectedFrameworks)
                     {
                         var nugetFramework = NuGetFramework.Parse(framework);
-                        var frameworkSpecificGroup = nupkgFrameworkGroups.Where(t => t.TargetFramework.Equals(nugetFramework)).FirstOrDefault();
+                        var frameworkSpecificGroup = nupkgFrameworkGroups.FirstOrDefault(t => t.TargetFramework.Equals(nugetFramework));
 
                         foreach (var frameworkRef in frameworkReftoPack)
                         {
@@ -5278,8 +5283,8 @@ namespace ClassLibrary
                     if (CentralPackageTransitivePinningEnabled == "true")
                     {
                         Assert.Equal(2, packages.Count);
-                        var moqPackage = packages.Where(p => p.Id.Equals("Moq", StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
-                        var castleCorePackage = packages.Where(p => p.Id.Equals("Castle.Core", StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+                        var moqPackage = packages.FirstOrDefault(p => p.Id.Equals("Moq", StringComparison.OrdinalIgnoreCase));
+                        var castleCorePackage = packages.FirstOrDefault(p => p.Id.Equals("Castle.Core", StringComparison.OrdinalIgnoreCase));
                         Assert.NotNull(moqPackage);
                         Assert.NotNull(castleCorePackage);
                         Assert.Equal("4.10.0", moqPackage.VersionRange.ToShortString());
@@ -5733,7 +5738,7 @@ namespace ClassLibrary
                 _dotnetFixture.CreateDotnetNewProject(testDirectory, projectName, args: "classlib", testOutputHelper: _testOutputHelper);
                 string projectXml = $@"<Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
-    <TargetFramework>{Constants.DefaultTargetFramework.GetShortFolderName()}</TargetFramework>
+    <TargetFramework>{TestConstants.DefaultTargetFramework.GetShortFolderName()}</TargetFramework>
     <Version>1.2.3</Version>
   </PropertyGroup>
 
@@ -5775,7 +5780,7 @@ namespace ClassLibrary
                 _dotnetFixture.CreateDotnetNewProject(testDirectory, projectName, args: "classlib", testOutputHelper: _testOutputHelper);
                 string projectXml = $@"<Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
-    <TargetFramework>{Constants.DefaultTargetFramework.GetShortFolderName()}</TargetFramework>
+    <TargetFramework>{TestConstants.DefaultTargetFramework.GetShortFolderName()}</TargetFramework>
     <Version>1.2.3</Version>
   </PropertyGroup>
   <ItemGroup>
@@ -5844,7 +5849,7 @@ namespace ClassLibrary
                 _dotnetFixture.CreateDotnetNewProject(testDirectory, projectName, args: "classlib", testOutputHelper: _testOutputHelper);
                 string projectXml = $@"<Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
-    <TargetFramework>{Constants.DefaultTargetFramework.GetShortFolderName()}</TargetFramework>
+    <TargetFramework>{TestConstants.DefaultTargetFramework.GetShortFolderName()}</TargetFramework>
     <Version>1.2.3</Version>
   </PropertyGroup>
 
@@ -5889,7 +5894,7 @@ namespace ClassLibrary
                 _dotnetFixture.CreateDotnetNewProject(testDirectory, projectName, args: "classlib", testOutputHelper: _testOutputHelper);
                 string projectXml = $@"<Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
-    <TargetFrameworks>{Constants.DefaultTargetFramework.GetShortFolderName()}</TargetFrameworks>
+    <TargetFrameworks>{TestConstants.DefaultTargetFramework.GetShortFolderName()}</TargetFrameworks>
     <Version>1.2.3</Version>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <NoWarn>NU5104</NoWarn>
@@ -5966,7 +5971,7 @@ namespace ClassLibrary
                 _dotnetFixture.CreateDotnetNewProject(testDirectory, projectName, args: "classlib", testOutputHelper: _testOutputHelper);
                 string projectXml = $@"<Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
-    <TargetFrameworks>{Constants.ProjectTargetFramework};net45</TargetFrameworks>
+    <TargetFrameworks>{TestConstants.ProjectTargetFramework};net45</TargetFrameworks>
     <Version>1.2.3</Version>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
@@ -6025,7 +6030,7 @@ namespace ClassLibrary
                 _dotnetFixture.CreateDotnetNewProject(testDirectory, projectName, args: "classlib", testOutputHelper: _testOutputHelper);
                 string projectXml = $@"<Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
-    <TargetFrameworks>{Constants.ProjectTargetFramework};net45</TargetFrameworks>
+    <TargetFrameworks>{TestConstants.ProjectTargetFramework};net45</TargetFrameworks>
     <Version>1.2.3</Version>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
@@ -6107,7 +6112,7 @@ namespace ClassLibrary
                 _dotnetFixture.CreateDotnetNewProject(testDirectory, projectName, args: "classlib", testOutputHelper: _testOutputHelper);
                 string projectXml = $@"<Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
-    <TargetFrameworks>{Constants.DefaultTargetFramework.GetShortFolderName()};net48</TargetFrameworks>
+    <TargetFrameworks>{TestConstants.DefaultTargetFramework.GetShortFolderName()};net48</TargetFrameworks>
     <Version>1.2.3</Version>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <NoWarn>NU5104</NoWarn>
@@ -6177,6 +6182,219 @@ namespace ClassLibrary
             Assert.True(File.Exists(Path.Combine(workingDirectory, "obj", $"{projectName}.1.0.0.nuspec")), "The intermediate nuspec file is not in the expected place");
             var expectedWarning = string.Format("warning " + NuGetLogCode.NU5125 + ": " + NuGet.Packaging.Rules.AnalysisResources.LicenseUrlDeprecationWarning);
             result.AllOutput.Should().Contain(expectedWarning);
+        }
+
+        [PlatformTheory(Platform.Windows)]
+        [InlineData("2.0.0", true)]
+        [InlineData("0.9.0", false)]
+        public async Task DotnetPack_WithDirectPackageIdMarkedForPruning_PruningResultAffectsPackedDepedencies(string version, bool excluded)
+        {
+            using SimpleTestPathContext pathContext = _dotnetFixture.CreateSimpleTestPathContext();
+            var projectName = "ClassLibrary1";
+            var workingDirectory = Path.Combine(pathContext.SolutionRoot, projectName);
+            var projectFile = Path.Combine(workingDirectory, $"{projectName}.csproj");
+            await SimpleTestPackageUtility.CreatePackagesAsync(pathContext.PackageSource,
+                new SimpleTestPackageContext("X", "1.0.0")
+                {
+                    Dependencies = [new SimpleTestPackageContext("Y", "1.0.0")]
+                },
+                new SimpleTestPackageContext("Z", "2.0.0"));
+
+            _dotnetFixture.CreateDotnetNewProject(pathContext.SolutionRoot, projectName, "classlib -f netstandard2.1", testOutputHelper: _testOutputHelper);
+
+            using (var stream = File.Open(projectFile, FileMode.Open, FileAccess.ReadWrite))
+            {
+                var xml = XDocument.Load(stream);
+                ProjectFileUtils.AddProperty(xml, "RestoreEnablePackagePruning", "true");
+
+                ProjectFileUtils.AddItem(
+                    xml,
+                    "PackageReference",
+                    "X",
+                    string.Empty,
+                    [],
+                    new Dictionary<string, string>() { { "Version", "1.0.0" } });
+
+                ProjectFileUtils.AddItem(
+                    xml,
+                    "PackageReference",
+                    "Z",
+                    string.Empty,
+                    [],
+                    new Dictionary<string, string>() { { "Version", "2.0.0" } });
+
+                ProjectFileUtils.AddItem(
+                    xml,
+                    "PrunePackageReference",
+                    "X",
+                    string.Empty,
+                    [],
+                    new Dictionary<string, string>() { { "Version", version } });
+
+                ProjectFileUtils.WriteXmlToFile(xml, stream);
+            }
+
+            var result = _dotnetFixture.RunDotnetExpectSuccess(workingDirectory, $"restore {projectFile}", testOutputHelper: _testOutputHelper);
+            result.AllOutput.Should().NotContain("Warning");
+            LockFile assetsFile = new LockFileFormat().Read(Path.Combine(workingDirectory, "obj", LockFileFormat.AssetsFileName));
+            assetsFile.Targets.Should().HaveCount(1);
+            assetsFile.Targets[0].Libraries.Should().HaveCount(3);
+
+            CommandRunnerResult packResult = _dotnetFixture.PackProjectExpectSuccess(workingDirectory, projectName, $"/p:PackageOutputPath={workingDirectory}", testOutputHelper: _testOutputHelper);
+            var nupkgPath = Path.Combine(workingDirectory, $"{projectName}.1.0.0.nupkg");
+            using var nupkgReader = new PackageArchiveReader(nupkgPath);
+            List<PackageDependencyGroup> dependencyGroups = nupkgReader.NuspecReader.GetDependencyGroups().ToList();
+            dependencyGroups.Should().HaveCount(1);
+
+            if (excluded)
+            {
+                dependencyGroups[0].Packages.Should().HaveCount(1);
+                dependencyGroups[0].Packages.Single().Id.Should().Be("Z");
+            }
+            else
+            {
+                dependencyGroups[0].Packages.Should().HaveCount(2);
+                dependencyGroups[0].Packages.First().Id.Should().Be("X");
+                dependencyGroups[0].Packages.Last().Id.Should().Be("Z");
+            }
+        }
+
+        [PlatformFact(Platform.Windows)]
+        public async Task DotnetPack_WithMultiTargetedProject_WhenDirectPackageIsPrunable_DoesNotIncludeAsADependecy()
+        {
+            using SimpleTestPathContext pathContext = _dotnetFixture.CreateSimpleTestPathContext();
+            var tfm = "net472;netstandard2.1";
+            var projectName = "ClassLibrary1";
+            var workingDirectory = Path.Combine(pathContext.SolutionRoot, projectName);
+            var projectFile = Path.Combine(workingDirectory, $"{projectName}.csproj");
+            await SimpleTestPackageUtility.CreatePackagesAsync(pathContext.PackageSource,
+                new SimpleTestPackageContext("X", "1.0.0")
+                {
+                    Dependencies = [new SimpleTestPackageContext("Y", "1.0.0")]
+                },
+                new SimpleTestPackageContext("Z", "2.0.0"));
+
+            _dotnetFixture.CreateDotnetNewProject(pathContext.SolutionRoot, projectName, "classlib -f netstandard2.1", testOutputHelper: _testOutputHelper);
+
+            using (var stream = File.Open(projectFile, FileMode.Open, FileAccess.ReadWrite))
+            {
+                var xml = XDocument.Load(stream);
+                ProjectFileUtils.SetTargetFrameworkForProject(xml, "TargetFrameworks", tfm);
+                ProjectFileUtils.AddProperty(xml, "RestoreEnablePackagePruning", "true");
+
+                ProjectFileUtils.AddItem(
+                    xml,
+                    "PackageReference",
+                    "X",
+                    string.Empty,
+                    [],
+                    new Dictionary<string, string>() { { "Version", "1.0.0" } });
+
+                ProjectFileUtils.AddItem(
+                    xml,
+                    "PackageReference",
+                    "Z",
+                    string.Empty,
+                    [],
+                    new Dictionary<string, string>() { { "Version", "2.0.0" } });
+
+                ProjectFileUtils.AddItem(
+                    xml,
+                    "PrunePackageReference",
+                    "X",
+                    string.Empty,
+                    [],
+                    new Dictionary<string, string>() { { "Version", "2.0.0" } });
+
+                ProjectFileUtils.WriteXmlToFile(xml, stream);
+            }
+
+            var result = _dotnetFixture.RunDotnetExpectSuccess(workingDirectory, $"restore {projectFile}", testOutputHelper: _testOutputHelper);
+            result.AllOutput.Should().NotContain("Warning");
+            LockFile assetsFile = new LockFileFormat().Read(Path.Combine(workingDirectory, "obj", LockFileFormat.AssetsFileName));
+            assetsFile.Targets.Should().HaveCount(2);
+            assetsFile.Targets[0].Libraries.Should().HaveCount(3);
+            assetsFile.Targets[1].Libraries.Should().HaveCount(3);
+
+            CommandRunnerResult packResult = _dotnetFixture.PackProjectExpectSuccess(workingDirectory, projectName, $"/p:PackageOutputPath={workingDirectory}", testOutputHelper: _testOutputHelper);
+            var nupkgPath = Path.Combine(workingDirectory, $"{projectName}.1.0.0.nupkg");
+            using var nupkgReader = new PackageArchiveReader(nupkgPath);
+            List<PackageDependencyGroup> dependencyGroups = nupkgReader.NuspecReader.GetDependencyGroups().ToList();
+            dependencyGroups.Should().HaveCount(2);
+            dependencyGroups[0].Packages.Should().HaveCount(1);
+            dependencyGroups[0].Packages.Single().Id.Should().Be("Z");
+            dependencyGroups[1].Packages.Should().HaveCount(1);
+            dependencyGroups[1].Packages.Single().Id.Should().Be("Z");
+        }
+
+        [PlatformFact(Platform.Windows)]
+        public async Task DotnetPack_WithMultiTargetedProject_WhenDirectPackageIsPartiallyPrunable_IncludesAsADependency()
+        {
+            using SimpleTestPathContext pathContext = _dotnetFixture.CreateSimpleTestPathContext();
+            var tfm = "net472;netstandard2.1";
+            var projectName = "ClassLibrary1";
+            var workingDirectory = Path.Combine(pathContext.SolutionRoot, projectName);
+            var projectFile = Path.Combine(workingDirectory, $"{projectName}.csproj");
+            await SimpleTestPackageUtility.CreatePackagesAsync(pathContext.PackageSource,
+                new SimpleTestPackageContext("X", "1.0.0")
+                {
+                    Dependencies = [new SimpleTestPackageContext("Y", "1.0.0")]
+                },
+                new SimpleTestPackageContext("Z", "2.0.0"));
+
+            _dotnetFixture.CreateDotnetNewProject(pathContext.SolutionRoot, projectName, "classlib -f netstandard2.1", testOutputHelper: _testOutputHelper);
+
+            using (var stream = File.Open(projectFile, FileMode.Open, FileAccess.ReadWrite))
+            {
+                var xml = XDocument.Load(stream);
+                ProjectFileUtils.SetTargetFrameworkForProject(xml, "TargetFrameworks", tfm);
+                ProjectFileUtils.AddProperty(xml, "RestoreEnablePackagePruning", "true", " '$(TargetFramework)' == 'net472' ");
+
+                ProjectFileUtils.AddItem(
+                    xml,
+                    "PackageReference",
+                    "X",
+                    string.Empty,
+                    [],
+                    new Dictionary<string, string>() { { "Version", "1.0.0" } });
+
+                ProjectFileUtils.AddItem(
+                    xml,
+                    "PackageReference",
+                    "Z",
+                    string.Empty,
+                    [],
+                    new Dictionary<string, string>() { { "Version", "2.0.0" } });
+
+                ProjectFileUtils.AddItem(
+                    xml,
+                    "PrunePackageReference",
+                    "X",
+                    string.Empty,
+                    [],
+                    new Dictionary<string, string>() { { "Version", "1.0.0" } });
+
+                ProjectFileUtils.WriteXmlToFile(xml, stream);
+            }
+
+            var result = _dotnetFixture.RunDotnetExpectSuccess(workingDirectory, $"restore {projectFile}", testOutputHelper: _testOutputHelper);
+            result.AllOutput.Should().NotContain("Warning");
+            LockFile assetsFile = new LockFileFormat().Read(Path.Combine(workingDirectory, "obj", LockFileFormat.AssetsFileName));
+            assetsFile.Targets.Should().HaveCount(2);
+            assetsFile.Targets[0].Libraries.Should().HaveCount(3);
+            assetsFile.Targets[1].Libraries.Should().HaveCount(3);
+
+            CommandRunnerResult packResult = _dotnetFixture.PackProjectExpectSuccess(workingDirectory, projectName, $"/p:PackageOutputPath={workingDirectory}", testOutputHelper: _testOutputHelper);
+            var nupkgPath = Path.Combine(workingDirectory, $"{projectName}.1.0.0.nupkg");
+            using var nupkgReader = new PackageArchiveReader(nupkgPath);
+            List<PackageDependencyGroup> dependencyGroups = nupkgReader.NuspecReader.GetDependencyGroups().ToList();
+            dependencyGroups.Should().HaveCount(2);
+            dependencyGroups[0].TargetFramework.Should().Be(NuGetFramework.Parse("net472"));
+            dependencyGroups[0].Packages.Should().HaveCount(1);
+            dependencyGroups[0].Packages.Single().Id.Should().Be("Z");
+            dependencyGroups[1].Packages.Should().HaveCount(2);
+            dependencyGroups[1].Packages.First().Id.Should().Be("X");
+            dependencyGroups[1].Packages.Last().Id.Should().Be("Z");
         }
     }
 }

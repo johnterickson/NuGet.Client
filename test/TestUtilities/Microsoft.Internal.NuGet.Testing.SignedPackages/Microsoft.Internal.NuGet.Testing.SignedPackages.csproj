@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>$(TargetFrameworksUnitTestForSigning)</TargetFrameworks>
+    <TargetFrameworks>$(TargetFrameworksUnitTest)</TargetFrameworks>
     <PackProject>true</PackProject>
     <Shipping>true</Shipping>
     <IsPackable>true</IsPackable>
@@ -20,10 +20,6 @@
   <ItemGroup Condition=" '$(TargetFrameworkIdentifier)' == '.NETFramework' ">
     <Reference Include="System.Security" />
     <PackageReference Include="System.Formats.Asn1" />
-  </ItemGroup>
-
-  <ItemGroup Condition=" '$(TargetFrameworkIdentifier)' != '.NETFramework' ">
-    <PackageReference Include="System.Security.Cryptography.Pkcs" />
   </ItemGroup>
 
   <ItemGroup>

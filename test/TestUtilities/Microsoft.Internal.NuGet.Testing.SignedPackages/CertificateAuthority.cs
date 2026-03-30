@@ -1,13 +1,13 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 #pragma warning disable CS1591
 
 using System;
 using System.Collections.Generic;
-#if IS_SIGNING_SUPPORTED
 using System.Net;
-#endif
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -132,7 +132,6 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages
                 new RevokedInfo(revocationDate, reason));
         }
 
-#if IS_SIGNING_SUPPORTED
         public override void Respond(HttpListenerContext context)
         {
             if (context == null)
@@ -150,7 +149,6 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages
                 context.Response.StatusCode = 404;
             }
         }
-#endif
 
         public static CertificateAuthority Create(Uri sharedUri, IssueCertificateOptions options = null)
         {

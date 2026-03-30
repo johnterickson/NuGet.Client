@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,17 +19,6 @@ namespace NuGet.Credentials.Test
 {
     public class SecurePluginCredentialProviderBuilderTests : IDisposable
     {
-        public static bool IsDesktop
-        {
-            get
-            {
-#if IS_DESKTOP
-                return true;
-#else
-                return false;
-#endif
-            }
-        }
         private readonly TestDirectory _testDirectory;
 
         public SecurePluginCredentialProviderBuilderTests()
@@ -83,7 +74,7 @@ namespace NuGet.Credentials.Test
                 var providerBuilder = new SecurePluginCredentialProviderBuilder(pluginManagerBuilder.PluginManager, canShowDialog: true, logger: NullLogger.Instance);
 
                 var credentialProviders = (await providerBuilder.BuildAllAsync()).ToArray();
-                Assert.Equal(3, credentialProviders.Count());
+                Assert.Equal(3, credentialProviders.Length);
                 Assert.StartsWith(nameof(SecurePluginCredentialProvider) + "_a", credentialProviders[0].Id);
                 Assert.StartsWith(nameof(SecurePluginCredentialProvider) + "_b", credentialProviders[1].Id);
                 Assert.StartsWith(nameof(SecurePluginCredentialProvider) + "_c", credentialProviders[2].Id);
@@ -104,7 +95,7 @@ namespace NuGet.Credentials.Test
                 var providerBuilder = new SecurePluginCredentialProviderBuilder(pluginManagerBuilder.PluginManager, canShowDialog: true, logger: NullLogger.Instance);
 
                 var credentialProviders = (await providerBuilder.BuildAllAsync()).ToArray();
-                Assert.Equal(4, credentialProviders.Count());
+                Assert.Equal(4, credentialProviders.Length);
             }
         }
 
@@ -121,7 +112,7 @@ namespace NuGet.Credentials.Test
                 var providerBuilder = new SecurePluginCredentialProviderBuilder(pluginManagerBuilder.PluginManager, canShowDialog, logger: NullLogger.Instance);
 
                 var credentialProviders = (await providerBuilder.BuildAllAsync()).ToArray();
-                Assert.Equal(1, credentialProviders.Count());
+                Assert.Equal(1, credentialProviders.Length);
                 var bla = typeof(SecurePluginCredentialProvider).GetField("_canShowDialog", BindingFlags.NonPublic | BindingFlags.GetField | BindingFlags.Instance);
                 Assert.Equal(canShowDialog, bla.GetValue(credentialProviders.Single()));
             }
@@ -181,7 +172,7 @@ namespace NuGet.Credentials.Test
                 var results = new List<PluginDiscoveryResult>();
                 foreach (var plugin in plugins)
                 {
-                    var file = new PluginFile(plugin.Key, new Lazy<PluginFileState>(() => plugin.Value), requiresDotnetHost: !IsDesktop);
+                    var file = new PluginFile(plugin.Key, new Lazy<PluginFileState>(() => plugin.Value));
                     results.Add(new PluginDiscoveryResult(file));
                 }
 

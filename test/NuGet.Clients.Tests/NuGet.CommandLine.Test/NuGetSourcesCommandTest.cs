@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -1205,7 +1207,7 @@ namespace NuGet.CommandLine.Test
 
                 // test to ensure detailed format is the default
                 Assert.True(result.Output.StartsWith("Registered Sources:"));
-                Assert.True(result.ExitCode == 0);
+                Assert.Equal(0, result.ExitCode);
                 Assert.Contains("encyclopaedia [Enabled]", result.Output);
                 Assert.Contains("encyclopædia [Enabled]", result.Output);
                 Assert.DoesNotContain("Encyclopaedia", result.Output);

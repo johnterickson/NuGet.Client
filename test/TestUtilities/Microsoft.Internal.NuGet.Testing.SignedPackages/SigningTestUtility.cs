@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 #pragma warning disable CS1591
 
 using System;
@@ -604,7 +606,6 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages
 
             return cms;
         }
-#if IS_SIGNING_SUPPORTED
         /// <summary>
         /// Generates a SignedCMS object for some content.
         /// </summary>
@@ -630,7 +631,6 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages
                 return cms;
             }
         }
-#endif
         /// <summary>
         /// Returns the public cert without the private key.
         /// </summary>

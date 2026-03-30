@@ -1,8 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#nullable enable
-
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -91,7 +89,7 @@ namespace NuGet.SolutionRestoreManager
         }
 
         internal static TargetFrameworkInformation ToTargetFrameworkInformation(
-            IVsTargetFrameworkInfo4 targetFrameworkInfo, bool cpvmEnabled, string projectFullPath)
+            IVsTargetFrameworkInfo4 targetFrameworkInfo, bool cpvmEnabled, bool isPruningEnabledGlobally, string projectFullPath)
         {
             var frameworkName = GetTargetFramework(targetFrameworkInfo.Properties, projectFullPath);
 
@@ -105,7 +103,8 @@ namespace NuGet.SolutionRestoreManager
                 ? MSBuildStringUtility.Split(atfString).Select(NuGetFramework.Parse).ToList()
                 : null;
 
-            bool isPackagePruningEnabled = MSBuildStringUtility.IsTrue(GetPropertyValueOrNull(targetFrameworkInfo.Properties, ProjectBuildProperties.RestoreEnablePackagePruning));
+            bool? restoreEnablePackagePruning = MSBuildStringUtility.GetBooleanOrNull(GetPropertyValueOrNull(targetFrameworkInfo.Properties, ProjectBuildProperties.RestoreEnablePackagePruning));
+            bool isPackagePruningEnabled = restoreEnablePackagePruning == null ? isPruningEnabledGlobally : restoreEnablePackagePruning == true;
 
             // Get fallback properties
             (frameworkName, var imports, var assetTargetFallback, var warn) = AssetTargetFallbackUtility.GetFallbackFrameworkInformation(frameworkName, ptf, atf);
@@ -335,11 +334,23 @@ namespace NuGet.SolutionRestoreManager
             return GetSingleNonEvaluatedPropertyOrNull(tfms, ProjectBuildProperties.RestoreUseLegacyDependencyResolver, MSBuildStringUtility.IsTrue);
         }
 
+        internal static bool IsPruningEnabledGlobally(IReadOnlyList<IVsTargetFrameworkInfo4> tfms)
+        {
+            foreach (var value in GetNonEvaluatedPropertyOrNull(tfms, "RestorePackagePruningDefault", s => s))
+            {
+                if (value is not null && MSBuildStringUtility.IsTrue(value))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         internal static RestoreAuditProperties? GetRestoreAuditProperties(IReadOnlyList<IVsTargetFrameworkInfo4> tfms)
         {
             string? enableAudit = GetSingleNonEvaluatedPropertyOrNull(tfms, ProjectBuildProperties.NuGetAudit, s => s);
             string? auditLevel = GetSingleNonEvaluatedPropertyOrNull(tfms, ProjectBuildProperties.NuGetAuditLevel, s => s);
-            string? auditMode = GetSingleNonEvaluatedPropertyOrNull(tfms, ProjectBuildProperties.NuGetAuditMode, s => s);
+            string? auditMode = GetAuditMode(tfms);
             HashSet<string>? suppressedAdvisories = GetSuppressedAdvisories(tfms);
 
             return !string.IsNullOrEmpty(enableAudit) || !string.IsNullOrEmpty(auditLevel) || !string.IsNullOrEmpty(auditMode) || suppressedAdvisories is not null
@@ -351,6 +362,25 @@ namespace NuGet.SolutionRestoreManager
                     SuppressedAdvisories = suppressedAdvisories,
                 }
                 : null;
+
+            // For multi-targeting projects, we want to set audit mode to "all" if the project targets .NET 10 or higher.
+            // NuGet.targets achieves this by doing the NuGetAuditMode assigning in the "inner-build", which means that
+            // different inner builds can have different values. So, if any of the values is "all", then we use it.
+            // Otherwise, we can fall back to our previous behavior.
+            static string? GetAuditMode(IReadOnlyList<IVsTargetFrameworkInfo4> tfms)
+            {
+                ImmutableArray<string?> auditMode = GetNonEvaluatedPropertyOrNull(tfms, ProjectBuildProperties.NuGetAuditMode, s => s);
+
+                foreach (var value in auditMode)
+                {
+                    if (string.Equals(value, "all", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return value;
+                    }
+                }
+
+                return GetSingleNonEvaluatedPropertyOrNull(auditMode, ProjectBuildProperties.NuGetAuditMode);
+            }
 
             static HashSet<string>? GetSuppressedAdvisories(IReadOnlyList<IVsTargetFrameworkInfo4> tfms)
             {
@@ -492,7 +522,7 @@ namespace NuGet.SolutionRestoreManager
         }
 
         // Trying to fetch a property value from tfm property bags.
-        // If defined the property should have identical values in all of the occurances.
+        // If defined the property should have identical values in all of the occurrences.
         private static TValue? GetSingleNonEvaluatedPropertyOrNull<TValue>(
             IReadOnlyList<IVsTargetFrameworkInfo4> values,
             string propertyName,
@@ -500,9 +530,18 @@ namespace NuGet.SolutionRestoreManager
         {
             ImmutableArray<TValue?> distinctValues = GetNonEvaluatedPropertyOrNull(values, propertyName, valueFactory);
 
+            return GetSingleNonEvaluatedPropertyOrNull(distinctValues, propertyName);
+        }
+
+        // Trying to fetch a property value from tfm property bags.
+        // If defined the property should have identical values in all of the occurrences.
+        private static TValue? GetSingleNonEvaluatedPropertyOrNull<TValue>(
+            ImmutableArray<TValue?> distinctValues,
+            string propertyName)
+        {
             if (distinctValues.Length == 0)
             {
-                return default(TValue);
+                return default;
             }
             else if (distinctValues.Length == 1)
             {
@@ -510,8 +549,8 @@ namespace NuGet.SolutionRestoreManager
             }
             else
             {
-                distinctValues.Sort();
-                var distinctValueStrings = string.Join(", ", distinctValues);
+                var sorted = distinctValues.Sort();
+                var distinctValueStrings = string.Join(", ", sorted);
                 var message = string.Format(CultureInfo.CurrentCulture, Resources.PropertyDoesNotHaveSingleValue, propertyName, distinctValueStrings);
                 throw new InvalidOperationException(message);
             }
@@ -817,6 +856,14 @@ namespace NuGet.SolutionRestoreManager
             }
 
             return false;
+        }
+
+        internal static NuGetVersion? GetSdkVersion(IReadOnlyList<IVsTargetFrameworkInfo4> targetFrameworks)
+        {
+            string? sdkVersionString = GetSingleNonEvaluatedPropertyOrNull(targetFrameworks, "NETCoreSdkVersion", v => v);
+            NuGetVersion.TryParse(sdkVersionString, out NuGetVersion? sdkVersion);
+
+            return sdkVersion;
         }
     }
 }

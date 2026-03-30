@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -68,12 +70,6 @@ namespace NuGet.RuntimeModel
             combiner.AddObject(Id, StringComparer.OrdinalIgnoreCase);
             combiner.AddDictionary(Dependencies);
             return combiner.CombinedHash;
-        }
-
-        [Obsolete("This type is immutable, so there is no need or point to clone it.")]
-        public RuntimeDependencySet Clone()
-        {
-            return this;
         }
 
         public override string ToString()

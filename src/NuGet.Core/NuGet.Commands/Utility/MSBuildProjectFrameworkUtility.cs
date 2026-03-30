@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -82,27 +84,6 @@ namespace NuGet.Commands
                 targetPlatformMinVersion,
                 clrSupport,
                 windowsTargetPlatformMinVersion,
-                isXnaWindowsPhoneProject: false,
-                isManagementPackProject: false);
-        }
-
-        [Obsolete("If you need ClrSupport support parameter to be accounted for in the calculation, the method with the windowsTargetPlatformMinVersion is the only correct one.")]
-        public static NuGetFramework GetProjectFramework(
-            string projectFilePath,
-            string targetFrameworkMoniker,
-            string targetPlatformMoniker,
-            string targetPlatformMinVersion,
-            string clrSupport)
-        {
-            return GetProjectFramework(
-                projectFilePath,
-                targetFrameworkMoniker,
-                targetPlatformMoniker,
-                targetPlatformIdentifier: null,
-                targetPlatformVersion: null,
-                targetPlatformMinVersion,
-                clrSupport,
-                windowsTargetPlatformMinVersion: null,
                 isXnaWindowsPhoneProject: false,
                 isManagementPackProject: false);
         }

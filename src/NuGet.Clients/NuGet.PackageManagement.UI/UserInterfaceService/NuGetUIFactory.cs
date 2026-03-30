@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.ComponentModel.Composition;
 using System.Threading;
@@ -16,6 +18,7 @@ using NuGet.ProjectManagement;
 using NuGet.Protocol.Core.Types;
 using NuGet.VisualStudio;
 using NuGet.VisualStudio.Internal.Contracts;
+using NuGet.VisualStudio.Telemetry;
 
 namespace NuGet.PackageManagement.UI
 {
@@ -57,6 +60,9 @@ namespace NuGet.PackageManagement.UI
 
         [Import]
         private Lazy<IRestoreProgressReporter> RestoreProgressReporter { get; set; }
+
+        [Import]
+        private INuGetTelemetryProvider NuGetTelemetryProvider { get; set; }
 
         [ImportingConstructor]
         public NuGetUIFactory(
@@ -105,6 +111,7 @@ namespace NuGet.PackageManagement.UI
                 LockService.Value,
                 OutputConsoleLogger,
                 RestoreProgressReporter.Value,
+                NuGetTelemetryProvider,
                 CancellationToken.None,
                 projects);
         }

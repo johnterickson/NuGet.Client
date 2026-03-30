@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -575,7 +577,6 @@ namespace NuGet.Protocol.Tests
             TestEnvironmentVariableReader testEnvironmentVariableReader = new TestEnvironmentVariableReader(
             new Dictionary<string, string>()
             {
-                [EnhancedHttpRetryHelper.IsEnabledEnvironmentVariableName] = bool.TrueString,
                 [EnhancedHttpRetryHelper.RetryCountEnvironmentVariableName] = testTryCount.ToString(),
                 [EnhancedHttpRetryHelper.DelayInMillisecondsEnvironmentVariableName] = "0"
             });

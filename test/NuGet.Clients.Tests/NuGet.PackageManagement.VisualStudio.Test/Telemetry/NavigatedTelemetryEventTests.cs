@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +11,7 @@ using NuGet.Common;
 using NuGet.PackageManagement.Telemetry;
 using NuGet.Versioning;
 using NuGet.VisualStudio;
+using NuGet.VisualStudio.Telemetry;
 using Xunit;
 using ContractsItemFilter = NuGet.VisualStudio.Internal.Contracts.ItemFilter;
 
@@ -22,7 +25,7 @@ namespace NuGet.PackageManagement.Test.Telemetry
         public void Constructor_WithValidProperties_CreatedWithoutPiiData()
         {
             // Arrange
-            SetupTelemetryListener();
+            var nuGetTelemetryService = SetupTelemetryListener();
 
             // Arbitrary values chosen here.
             NavigationType navigationType = NavigationType.Hyperlink;
@@ -31,7 +34,7 @@ namespace NuGet.PackageManagement.Test.Telemetry
             var evt = new NavigatedTelemetryEvent(navigationType, navigationOrigin);
 
             // Act
-            TelemetryActivity.NuGetTelemetryService.EmitTelemetryEvent(evt);
+            nuGetTelemetryService.EmitTelemetryEvent(evt);
 
             // Assert
             Assert.NotNull(_lastTelemetryEvent);
@@ -45,7 +48,7 @@ namespace NuGet.PackageManagement.Test.Telemetry
         public void CreateWithExternalLink_WithValidProperties_CreatedWithoutPiiData()
         {
             // Arrange
-            SetupTelemetryListener();
+            var nuGetTelemetryService = SetupTelemetryListener();
 
             HyperlinkType hyperlinkTab = HyperlinkType.DeprecationAlternativeDetails;
             ContractsItemFilter currentTab = ContractsItemFilter.UpdatesAvailable;
@@ -54,7 +57,7 @@ namespace NuGet.PackageManagement.Test.Telemetry
             var evt = NavigatedTelemetryEvent.CreateWithExternalLink(hyperlinkTab, currentTab, isSolutionView);
 
             // Act
-            TelemetryActivity.NuGetTelemetryService.EmitTelemetryEvent(evt);
+            nuGetTelemetryService.EmitTelemetryEvent(evt);
 
             // Assert
             Assert.NotNull(_lastTelemetryEvent);
@@ -68,10 +71,58 @@ namespace NuGet.PackageManagement.Test.Telemetry
         }
 
         [Fact]
+        public void CreateWithVulnerabilityInfoBarManagePackages_WithValidProperties_CreatedWithoutPiiData()
+        {
+            // Arrange
+            var nuGetTelemetryService = SetupTelemetryListener();
+
+            var navigationType = NavigationType.Button;
+            var navigationOrigin = NavigationOrigin.VulnerabilityInfoBar_ManagePackages;
+
+            var evt = NavigatedTelemetryEvent.CreateWithVulnerabilityInfoBarManagePackages();
+
+            // Act
+            nuGetTelemetryService.EmitTelemetryEvent(evt);
+
+            // Assert
+            Assert.NotNull(_lastTelemetryEvent);
+            Assert.Equal(navigationType, _lastTelemetryEvent[NavigatedTelemetryEvent.NavigationTypePropertyName]);
+            Assert.Equal(navigationOrigin, _lastTelemetryEvent[NavigatedTelemetryEvent.OriginPropertyName]);
+            Assert.Null(_lastTelemetryEvent[NavigatedTelemetryEvent.HyperLinkTypePropertyName]);
+            Assert.Null(_lastTelemetryEvent[NavigatedTelemetryEvent.CurrentTabPropertyName]);
+            Assert.Null(_lastTelemetryEvent[NavigatedTelemetryEvent.IsSolutionViewPropertyName]);
+            Assert.Empty(_lastTelemetryEvent.GetPiiData());
+        }
+
+        [Fact]
+        public void CreateWithExternalLink_VulnerabilityAdvisoryGHCopilotDocs_CreatedWithoutPiiData()
+        {
+            // Arrange
+            var nuGetTelemetryService = SetupTelemetryListener();
+
+            HyperlinkType hyperlinkType = HyperlinkType.VulnerabilityAdvisoryGHCopilotDocs;
+
+            var evt = NavigatedTelemetryEvent.CreateWithExternalLink(hyperlinkType);
+
+            // Act
+            nuGetTelemetryService.EmitTelemetryEvent(evt);
+
+            // Assert
+            Assert.NotNull(_lastTelemetryEvent);
+            Assert.Equal(3, _lastTelemetryEvent.Count);
+            Assert.Equal(NavigationType.Hyperlink, _lastTelemetryEvent[NavigatedTelemetryEvent.NavigationTypePropertyName]);
+            Assert.Equal(NavigationOrigin.PMUI_ExternalLink, _lastTelemetryEvent[NavigatedTelemetryEvent.OriginPropertyName]);
+            Assert.Equal(hyperlinkType, _lastTelemetryEvent[NavigatedTelemetryEvent.HyperLinkTypePropertyName]);
+            Assert.Null(_lastTelemetryEvent[NavigatedTelemetryEvent.CurrentTabPropertyName]);
+            Assert.Null(_lastTelemetryEvent[NavigatedTelemetryEvent.IsSolutionViewPropertyName]);
+            Assert.Empty(_lastTelemetryEvent.GetPiiData());
+        }
+
+        [Fact]
         public void CreateWithAddPackageSourceMapping_WithValidProperties_CreatedWithoutPiiData()
         {
             // Arrange
-            SetupTelemetryListener();
+            var nuGetTelemetryService = SetupTelemetryListener();
 
             int sourcesCount = 3;
             bool isGlobbing = false;
@@ -79,7 +130,7 @@ namespace NuGet.PackageManagement.Test.Telemetry
             var evt = NavigatedTelemetryEvent.CreateWithAddPackageSourceMapping(sourcesCount, isGlobbing);
 
             // Act
-            TelemetryActivity.NuGetTelemetryService.EmitTelemetryEvent(evt);
+            nuGetTelemetryService.EmitTelemetryEvent(evt);
 
             // Assert
             Assert.NotNull(_lastTelemetryEvent);
@@ -97,7 +148,7 @@ namespace NuGet.PackageManagement.Test.Telemetry
         public void CreateWithPMUIConfigurePackageSourceMapping_WithValidProperties_CreatedWithoutPiiData(PackageSourceMappingStatus packageSourceMappingStatus)
         {
             // Arrange
-            SetupTelemetryListener();
+            var nuGetTelemetryService = SetupTelemetryListener();
 
             ContractsItemFilter currentTab = ContractsItemFilter.UpdatesAvailable;
             bool isSolutionView = true;
@@ -105,7 +156,7 @@ namespace NuGet.PackageManagement.Test.Telemetry
             var evt = NavigatedTelemetryEvent.CreateWithPMUIConfigurePackageSourceMapping(currentTab, isSolutionView, packageSourceMappingStatus);
 
             // Act
-            TelemetryActivity.NuGetTelemetryService.EmitTelemetryEvent(evt);
+            nuGetTelemetryService.EmitTelemetryEvent(evt);
 
             // Assert
             Assert.NotNull(_lastTelemetryEvent);
@@ -227,12 +278,12 @@ namespace NuGet.PackageManagement.Test.Telemetry
         public void CreateWithClearLocalsCommand_WithValidProperties_CreatedWithoutPiiData(bool isUnifiedSettings)
         {
             // Arrange
-            SetupTelemetryListener();
+            var nuGetTelemetryService = SetupTelemetryListener();
 
             var evt = NavigatedTelemetryEvent.CreateWithClearLocalsCommand(isUnifiedSettings);
 
             // Act
-            TelemetryActivity.NuGetTelemetryService.EmitTelemetryEvent(evt);
+            nuGetTelemetryService.EmitTelemetryEvent(evt);
 
             // Assert
             Assert.NotNull(_lastTelemetryEvent);
@@ -242,15 +293,15 @@ namespace NuGet.PackageManagement.Test.Telemetry
             Assert.Equal(isUnifiedSettings, _lastTelemetryEvent[NavigatedTelemetryEvent.IsUnifiedSettingsPropertyName]);
             Assert.Empty(_lastTelemetryEvent.GetPiiData());
         }
-        private Mock<ITelemetrySession> SetupTelemetryListener()
+
+        private NuGetVSTelemetryService SetupTelemetryListener()
         {
             var telemetrySession = new Mock<ITelemetrySession>();
             telemetrySession
                 .Setup(x => x.PostEvent(It.IsAny<TelemetryEvent>()))
                 .Callback<TelemetryEvent>(x => _lastTelemetryEvent = x);
             var telemetryService = new NuGetVSTelemetryService(telemetrySession.Object);
-            TelemetryActivity.NuGetTelemetryService = telemetryService;
-            return telemetrySession;
+            return telemetryService;
         }
     }
 }

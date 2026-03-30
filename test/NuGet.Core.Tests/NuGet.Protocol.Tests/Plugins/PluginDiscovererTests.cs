@@ -1,9 +1,13 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+# if !NET8_0_OR_GREATER
+using Microsoft.Internal.NuGet.Testing.SignedPackages.ChildProcess;
+#endif
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -12,11 +16,19 @@ using Moq;
 using NuGet.Common;
 using NuGet.Test.Utility;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace NuGet.Protocol.Plugins.Tests
 {
     public class PluginDiscovererTests
     {
+        private readonly ITestOutputHelper _testOutputHelper;
+
+        public PluginDiscovererTests(ITestOutputHelper testOutputHelper)
+        {
+            _testOutputHelper = testOutputHelper;
+        }
+
         [Theory]
         [InlineData(null)]
         [InlineData("")]
@@ -199,14 +211,7 @@ namespace NuGet.Protocol.Plugins.Tests
                     var result = await discoverer.DiscoverAsync(CancellationToken.None);
 
                     // Assert
-                    var discovered = false;
-
-                    foreach (PluginDiscoveryResult discoveryResult in result)
-                    {
-                        if (myPlugin == discoveryResult.PluginFile.Path) discovered = true;
-                    }
-
-                    Assert.True(discovered);
+                    Assert.Contains(result, discoveryResult => myPlugin == discoveryResult.PluginFile.Path);
                 }
             }
         }
@@ -223,7 +228,7 @@ namespace NuGet.Protocol.Plugins.Tests
                 Directory.CreateDirectory(pluginPath);
                 var myPlugin = Path.Combine(pluginPath, fileName);
                 Mock<IEnvironmentVariableReader> environmentalVariableReader = new Mock<IEnvironmentVariableReader>();
-                environmentalVariableReader.Setup(env => env.GetEnvironmentVariable("NUGET_PLUGIN_PATHS")).Returns(pluginPath);
+                environmentalVariableReader.Setup(env => env.GetEnvironmentVariable(EnvironmentVariableConstants.PluginPaths)).Returns($"{Path.PathSeparator}{pluginPath}{Path.PathSeparator}");
                 environmentalVariableReader.Setup(env => env.GetEnvironmentVariable("PATHS")).Returns("");
                 File.WriteAllText(myPlugin, string.Empty);
 
@@ -233,14 +238,7 @@ namespace NuGet.Protocol.Plugins.Tests
                     var result = await discoverer.DiscoverAsync(CancellationToken.None);
 
                     // Assert
-                    var discovered = false;
-
-                    foreach (PluginDiscoveryResult discoveryResult in result)
-                    {
-                        if (myPlugin == discoveryResult.PluginFile.Path) discovered = true;
-                    }
-
-                    Assert.True(discovered);
+                    Assert.Contains(result, discoveryResult => myPlugin == discoveryResult.PluginFile.Path);
                 }
             }
         }
@@ -267,14 +265,7 @@ namespace NuGet.Protocol.Plugins.Tests
                     var result = await discoverer.DiscoverAsync(CancellationToken.None);
 
                     // Assert
-                    var discovered = false;
-
-                    foreach (PluginDiscoveryResult discoveryResult in result)
-                    {
-                        if (myPlugin == discoveryResult.PluginFile.Path) discovered = true;
-                    }
-
-                    Assert.False(discovered);
+                    Assert.DoesNotContain(result, discoveryResult => myPlugin == discoveryResult.PluginFile.Path);
                 }
             }
         }
@@ -291,35 +282,14 @@ namespace NuGet.Protocol.Plugins.Tests
                 File.WriteAllText(myPlugin, string.Empty);
                 Mock<IEnvironmentVariableReader> environmentalVariableReader = new Mock<IEnvironmentVariableReader>();
                 environmentalVariableReader.Setup(env => env.GetEnvironmentVariable(EnvironmentVariableConstants.PluginPaths)).Returns(pluginPath);
-
-                using (var process = new Process())
+                SetFileExecutable(myPlugin, true);
+                using (var discoverer = new PluginDiscoverer(environmentalVariableReader.Object))
                 {
-                    // Use a shell command to make the file executable
-                    process.StartInfo.FileName = "/bin/bash";
-                    process.StartInfo.Arguments = $"-c \"chmod +x {myPlugin}\"";
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.RedirectStandardOutput = true;
-                    process.Start();
-                    process.WaitForExit();
+                    // Act
+                    var result = await discoverer.DiscoverAsync(CancellationToken.None);
 
-                    if (process.ExitCode == 0)
-                    {
-                        using (var discoverer = new PluginDiscoverer(environmentalVariableReader.Object))
-                        {
-                            // Act
-                            var result = await discoverer.DiscoverAsync(CancellationToken.None);
-
-                            // Assert
-                            var discovered = false;
-
-                            foreach (PluginDiscoveryResult discoveryResult in result)
-                            {
-                                if (myPlugin == discoveryResult.PluginFile.Path) discovered = true;
-                            }
-
-                            Assert.True(discovered);
-                        }
-                    }
+                    // Assert
+                    Assert.Contains(result, discoveryResult => myPlugin == discoveryResult.PluginFile.Path);
                 }
             }
         }
@@ -338,34 +308,15 @@ namespace NuGet.Protocol.Plugins.Tests
                 environmentalVariableReader.Setup(env => env.GetEnvironmentVariable(EnvironmentVariableConstants.PluginPaths)).Returns(pluginPath);
                 environmentalVariableReader.Setup(env => env.GetEnvironmentVariable("PATHS")).Returns("");
 
-                using (var process = new Process())
+                SetFileExecutable(myPlugin, true);
+
+                using (var discoverer = new PluginDiscoverer(environmentalVariableReader.Object))
                 {
-                    // Use a shell command to make the file executable
-                    process.StartInfo.FileName = "/bin/bash";
-                    process.StartInfo.Arguments = $"-c \"chmod +x {myPlugin}\"";
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.RedirectStandardOutput = true;
-                    process.Start();
-                    process.WaitForExit();
+                    // Act
+                    var result = await discoverer.DiscoverAsync(CancellationToken.None);
 
-                    if (process.ExitCode == 0)
-                    {
-                        using (var discoverer = new PluginDiscoverer(environmentalVariableReader.Object))
-                        {
-                            // Act
-                            var result = await discoverer.DiscoverAsync(CancellationToken.None);
-
-                            // Assert
-                            var discovered = false;
-
-                            foreach (PluginDiscoveryResult discoveryResult in result)
-                            {
-                                if (myPlugin == discoveryResult.PluginFile.Path) discovered = true;
-                            }
-
-                            Assert.True(discovered);
-                        }
-                    }
+                    // Assert
+                    Assert.Contains(result, discoveryResult => myPlugin == discoveryResult.PluginFile.Path);
                 }
             }
         }
@@ -383,34 +334,15 @@ namespace NuGet.Protocol.Plugins.Tests
                 Mock<IEnvironmentVariableReader> environmentalVariableReader = new Mock<IEnvironmentVariableReader>();
                 environmentalVariableReader.Setup(env => env.GetEnvironmentVariable(EnvironmentVariableConstants.PluginPaths)).Returns(pluginPath);
 
-                using (var process = new Process())
+                SetFileExecutable(myPlugin, false);
+
+                using (var discoverer = new PluginDiscoverer(environmentalVariableReader.Object))
                 {
-                    // Use a shell command to make the file not executable
-                    process.StartInfo.FileName = "/bin/bash";
-                    process.StartInfo.Arguments = $"-c \"chmod -x {myPlugin}\"";
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.RedirectStandardOutput = true;
-                    process.Start();
-                    process.WaitForExit();
+                    // Act
+                    var result = await discoverer.DiscoverAsync(CancellationToken.None);
 
-                    if (process.ExitCode == 0)
-                    {
-                        using (var discoverer = new PluginDiscoverer(environmentalVariableReader.Object))
-                        {
-                            // Act
-                            var result = await discoverer.DiscoverAsync(CancellationToken.None);
-
-                            // Assert
-                            var discovered = false;
-
-                            foreach (PluginDiscoveryResult discoveryResult in result)
-                            {
-                                if (myPlugin == discoveryResult.PluginFile.Path) discovered = true;
-                            }
-
-                            Assert.False(discovered);
-                        }
-                    }
+                    // Assert
+                    Assert.DoesNotContain(result, discoveryResult => myPlugin == discoveryResult.PluginFile.Path);
                 }
             }
         }
@@ -589,13 +521,34 @@ namespace NuGet.Protocol.Plugins.Tests
             Assert.Empty(plugins);
         }
 
+        [PlatformTheory(Platform.Windows)]
+        [InlineData("nuget-plugin-auth.exe", true)]
+        [InlineData("nuget-plugin-AUTH.bat", true)]
+        [InlineData("nuGet-plugin-auth.exe", false)]
+        [InlineData("NUGet-PLUGIN-auth.bat", false)]
+        public void IsValidPlugin_IsCaseSensitive(string file, bool isValid)
+        {
+            // Arrange
+            using TestDirectory testDirectory = TestDirectory.Create();
+            var workingPath = testDirectory.Path;
+            var pluginFilePath = Path.Combine(workingPath, file);
+            File.Create(pluginFilePath);
+            var fileInfo = new FileInfo(pluginFilePath);
+
+            // Act
+            bool result = PluginDiscoverer.IsValidPluginFile(fileInfo);
+
+            // Assert
+            Assert.Equal(isValid, result);
+        }
+
         [PlatformFact(Platform.Windows)]
         public void IsValidPluginFile_ExeFile_ReturnsTrue()
         {
             // Arrange
             using TestDirectory testDirectory = TestDirectory.Create();
             var workingPath = testDirectory.Path;
-            var pluginFilePath = Path.Combine(workingPath, "plugin.exe");
+            var pluginFilePath = Path.Combine(workingPath, "nuget-plugin-.exe");
             File.Create(pluginFilePath);
             var fileInfo = new FileInfo(pluginFilePath);
 
@@ -612,7 +565,7 @@ namespace NuGet.Protocol.Plugins.Tests
             // Arrange
             using TestDirectory testDirectory = TestDirectory.Create();
             var workingPath = testDirectory.Path;
-            var nonPluginFilePath = Path.Combine(workingPath, "plugin.txt");
+            var nonPluginFilePath = Path.Combine(workingPath, "nuget-plugin-.txt");
             File.Create(nonPluginFilePath);
             var fileInfo = new FileInfo(nonPluginFilePath);
 
@@ -629,21 +582,14 @@ namespace NuGet.Protocol.Plugins.Tests
             // Arrange
             using TestDirectory testDirectory = TestDirectory.Create();
             var workingPath = testDirectory.Path;
-            var pluginFilePath = Path.Combine(workingPath, "plugin");
+            var pluginFilePath = Path.Combine(workingPath, "nuget-plugin-");
             File.Create(pluginFilePath).Dispose();
 
 #if NET8_0_OR_GREATER
             // Set execute permissions
             File.SetUnixFileMode(pluginFilePath, UnixFileMode.UserExecute | UnixFileMode.UserRead);
 #else
-            // Use chmod to set execute permissions
-            var process = new Process();
-            process.StartInfo.FileName = "/bin/bash";
-            process.StartInfo.Arguments = $"-c \"chmod +x {pluginFilePath}\"";
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.Start();
-            process.WaitForExit();
+            SetFileExecutable(pluginFilePath, true);
 #endif
 
             var fileInfo = new FileInfo(pluginFilePath);
@@ -662,17 +608,11 @@ namespace NuGet.Protocol.Plugins.Tests
             // Arrange
             using TestDirectory testDirectory = TestDirectory.Create();
             var workingPath = testDirectory.Path;
-            var pluginFilePath = Path.Combine(workingPath, "plugin");
+            var pluginFilePath = Path.Combine(workingPath, "nuget-plugin-");
             File.Create(pluginFilePath);
 
             // Set execute permissions
-            var process = new Process();
-            process.StartInfo.FileName = "/bin/bash";
-            process.StartInfo.Arguments = $"-c \"chmod +x {pluginFilePath}\"";
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.Start();
-            process.WaitForExit();
+            SetFileExecutable(pluginFilePath, true);
 
             var fileInfo = new FileInfo(pluginFilePath);
 
@@ -689,17 +629,11 @@ namespace NuGet.Protocol.Plugins.Tests
             // Arrange
             using TestDirectory testDirectory = TestDirectory.Create();
             var workingPath = testDirectory.Path;
-            var pluginFilePath = Path.Combine(workingPath, "plugin");
+            var pluginFilePath = Path.Combine(workingPath, "nuget-plugin-");
             File.Create(pluginFilePath);
 
             // Remove execute permissions
-            var process = new Process();
-            process.StartInfo.FileName = "/bin/bash";
-            process.StartInfo.Arguments = $"-c \"chmod -x {pluginFilePath}\"";
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.Start();
-            process.WaitForExit();
+            SetFileExecutable(pluginFilePath, false);
 
             var fileInfo = new FileInfo(pluginFilePath);
 
@@ -716,17 +650,11 @@ namespace NuGet.Protocol.Plugins.Tests
             // Arrange
             using TestDirectory testDirectory = TestDirectory.Create();
             var workingPath = testDirectory.Path;
-            var pluginFilePath = Path.Combine(workingPath, "plugin with space");
+            var pluginFilePath = Path.Combine(workingPath, "nuget-plugin- with space");
             File.Create(pluginFilePath).Dispose();
 
             // Set execute permissions
-            var process = new Process();
-            process.StartInfo.FileName = "/bin/bash";
-            process.StartInfo.Arguments = $"-c \"chmod +x '{pluginFilePath}'\"";
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardOutput = true;
-            process.Start();
-            process.WaitForExit();
+            SetFileExecutable(pluginFilePath, true);
 
             var fileInfo = new FileInfo(pluginFilePath);
 
@@ -738,5 +666,42 @@ namespace NuGet.Protocol.Plugins.Tests
         }
 
 #endif
+
+        private void SetFileExecutable(string filePath, bool executable)
+        {
+            if (!File.Exists(filePath))
+            {
+                throw new FileNotFoundException($"File not found: {filePath}");
+            }
+#if NET8_0_OR_GREATER
+            try
+            {
+                File.SetUnixFileMode(filePath, executable ?
+                    UnixFileMode.UserExecute | UnixFileMode.UserRead | UnixFileMode.UserWrite :
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error while setting file mode for: {filePath}", ex);
+            }
+#else
+            try
+            {
+                CommandRunnerResult result = CommandRunner.Run(
+                    filename: "/bin/bash",
+                    arguments: $"-c \"chmod {(executable ? "+x" : "-x")} '{filePath}'\"",
+                    testOutputHelper: _testOutputHelper);
+
+                if (!result.Success)
+                {
+                    throw new InvalidOperationException($"Failed to set execute permissions for {filePath}. Error: {result.Errors}");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error setting file executable permission for {filePath}", ex);
+            }
+#endif
+        }
     }
 }

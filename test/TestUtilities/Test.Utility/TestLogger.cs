@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
@@ -173,7 +175,7 @@ namespace NuGet.Test.Utility
         {
             LogMessages.Enqueue(message);
 
-            Log(message.Level, message.Message);
+            Log(message.Level, message.FormatWithCode());
         }
 
         public async Task LogAsync(ILogMessage message)

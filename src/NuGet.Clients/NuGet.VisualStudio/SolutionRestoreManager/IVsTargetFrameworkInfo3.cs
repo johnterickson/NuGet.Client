@@ -1,8 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#nullable enable
-
 using System;
 using System.Runtime.InteropServices;
 
@@ -13,6 +11,7 @@ namespace NuGet.SolutionRestoreManager
     /// </summary>
     [ComImport]
     [Guid("3B2E8CAA-123B-47D3-9160-9CF422E4C277")]
+    [Obsolete]
     public interface IVsTargetFrameworkInfo3 : IVsTargetFrameworkInfo2
     {
         /// <summary>

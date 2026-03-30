@@ -1,8 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-
-using System;
+#nullable disable
 
 namespace NuGet.ProjectManagement
 {
@@ -14,7 +13,6 @@ namespace NuGet.ProjectManagement
         public const string MSBuildProjectExtensionsPath = nameof(MSBuildProjectExtensionsPath);
         public const string PackageTargetFallback = nameof(PackageTargetFallback);
         public const string AssetTargetFallback = nameof(AssetTargetFallback);
-        [Obsolete("Use ProjectItems.PackageVersion, as it is an item not a property.")]
         public const string PackageVersion = nameof(PackageVersion);
         public const string RestoreProjectStyle = nameof(RestoreProjectStyle);
         public const string RuntimeIdentifier = nameof(RuntimeIdentifier);
@@ -67,5 +65,6 @@ namespace NuGet.ProjectManagement
         public const string UsingMicrosoftNETSdk = nameof(UsingMicrosoftNETSdk);
         public const string RestoreUseLegacyDependencyResolver = nameof(RestoreUseLegacyDependencyResolver);
         public const string RestoreEnablePackagePruning = nameof(RestoreEnablePackagePruning);
+        public const string RestorePackagePruningDefault = nameof(RestorePackagePruningDefault);
     }
 }

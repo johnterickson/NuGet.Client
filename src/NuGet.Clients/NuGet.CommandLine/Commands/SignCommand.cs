@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Globalization;
 using System.IO;
@@ -78,7 +80,7 @@ namespace NuGet.CommandLine
         {
             ValidatePackagePath();
             WarnIfNoTimestamper(Console);
-            ValidateCertificateInputs(Console);
+            ValidateCertificateInputs();
             ValidateOutputDirectory();
 
             var signingSpec = SigningSpecifications.V1;
@@ -164,7 +166,7 @@ namespace NuGet.CommandLine
             }
         }
 
-        private void ValidateCertificateInputs(ILogger logger)
+        private void ValidateCertificateInputs()
         {
             if (string.IsNullOrEmpty(CertificatePath) &&
                 string.IsNullOrEmpty(CertificateFingerprint) &&
@@ -189,13 +191,12 @@ namespace NuGet.CommandLine
             }
             else if (CertificateFingerprint != null)
             {
-                if (!CertificateUtility.TryDeduceHashAlgorithm(CertificateFingerprint, out HashAlgorithmName hashAlgorithmName))
+                if (!CertificateUtility.TryDeduceHashAlgorithm(CertificateFingerprint, out HashAlgorithmName hashAlgorithmName) ||
+                    hashAlgorithmName == HashAlgorithmName.SHA1)
                 {
-                    throw new ArgumentException(NuGetCommand.SignCommandInvalidCertificateFingerprint);
-                }
-                else if (hashAlgorithmName == HashAlgorithmName.SHA1)
-                {
-                    logger.Log(LogMessage.CreateWarning(NuGetLogCode.NU3043, NuGetCommand.SignCommandInvalidCertificateFingerprint));
+                    throw new ArgumentException(string.Format(CultureInfo.CurrentCulture,
+                        NuGetCommand.SignCommandInvalidCertificateFingerprint,
+                        NuGetLogCode.NU3043));
                 }
             }
         }

@@ -1,8 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#nullable enable
-
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -71,7 +69,7 @@ namespace NuGet.PackageManagement.UI
                     if (addedPackageId == topLevelPackageId)
                     {
                         // The top-level package is not already mapped to the selected source.
-                        if (configuredSource.Count == 0 || !configuredSource.Contains(userAction.SelectedSourceName))
+                        if (configuredSource.Count == 0 || !configuredSource.Contains(userAction.SelectedSourceName, StringComparer.OrdinalIgnoreCase))
                         {
                             countCreatedTopLevelSourceMappings++;
                             addedPackageIdsWithoutExistingMappings.Add(topLevelPackageId);
@@ -135,8 +133,7 @@ namespace NuGet.PackageManagement.UI
 
             PackageSourceMappingSourceItem packageSourceMappingItemForSource =
                 newAndExistingPackageSourceMappingItems
-                .Where(mappingItem => mappingItem.Key == sourceName)
-                .FirstOrDefault();
+                    .FirstOrDefault(mappingItem => mappingItem.Key == sourceName);
 
             IEnumerable<PackagePatternItem> newPackagePatternItems = newPackageIdsToSourceMap.Select(packageId => new PackagePatternItem(packageId));
 

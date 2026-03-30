@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -25,7 +27,7 @@ namespace NuGet.Packaging.Rules
                 new PathTooLongRule(AnalysisResources.FilePathTooLongWarning),
                 new UnrecognizedLicenseIdentifierRule(AnalysisResources.UnrecognizedLicenseIdentifier),
                 new LicenseUrlDeprecationWarning(AnalysisResources.LicenseUrlDeprecationWarning),
-                new NoRefOrLibFolderInPackageRule(AnalysisResources.NoRefOrLibFolderInPackage),
+                new AccidentallyCompatibleWithAllFrameworksRule(),
                 new DependenciesGroupsForEachTFMRule(),
                 new UpholdBuildConventionRule(),
                 new ReferencesInNuspecMatchRefAssetsRule(),

@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.IO;
 using System.IO.Compression;
@@ -16,7 +18,7 @@ namespace NuGet.Packaging.Test.PackageExtraction
     public class ZipArchiveExtensionsTests
     {
         // Trying to change a file timestamp when the file is open only throws on Windows
-        [PlatformFact(Platform.Windows)]
+        [PlatformFact(Platform.Windows, Skip = "https://github.com/NuGet/Home/issues/14479")]
         public void UpdateFileTimeFromEntry_FileBusyForShortTime_Retries()
         {
             // Arrange

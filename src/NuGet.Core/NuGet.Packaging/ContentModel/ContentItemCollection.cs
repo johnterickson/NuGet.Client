@@ -1,8 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#nullable enable
-
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -76,54 +74,6 @@ namespace NuGet.ContentModel
             return Enumerable.Empty<ContentItem>();
         }
 
-        [Obsolete("This method causes excessive memory allocation with yield return. Use ContentItemCollection.PopulateItemGroups instead.")]
-        public IEnumerable<ContentItemGroup> FindItemGroups(PatternSet definition)
-        {
-            if (definition == null)
-            {
-                throw new ArgumentNullException(nameof(definition));
-            }
-            if (_assets != null && _assets.Count > 0)
-            {
-                var groupPatterns = definition.GroupExpressions;
-
-                Dictionary<ContentItem, List<Asset>>? groupAssets = null;
-                foreach (var asset in _assets)
-                {
-                    foreach (var groupPattern in groupPatterns)
-                    {
-                        var item = groupPattern.Match(asset.Path, definition.PropertyDefinitions);
-                        if (item != null)
-                        {
-                            groupAssets ??= GroupAssetsPool.Allocate();
-                            if (!groupAssets.TryGetValue(item, out var assets))
-                            {
-                                assets = ListAssetPool.Allocate();
-                                groupAssets[item] = assets;
-                            }
-
-                            assets.Add(asset);
-                        }
-                    }
-                }
-
-                if (groupAssets != null)
-                {
-                    foreach (var (item, assets) in groupAssets)
-                    {
-                        yield return new ContentItemGroup(
-                            properties: item.Properties,
-                            items: FindItemsImplementation(definition, assets));
-
-                        assets.Clear();
-                        ListAssetPool.Free(assets);
-                    }
-
-                    groupAssets.Clear();
-                    GroupAssetsPool.Free(groupAssets);
-                }
-            }
-        }
         /// <summary>
         /// Populate the provided list with ContentItemGroups based on a provided pattern set.
         /// </summary>
@@ -179,12 +129,6 @@ namespace NuGet.ContentModel
                     GroupAssetsPool.Free(groupAssets);
                 }
             }
-        }
-
-        [Obsolete("Unused and will be removed in a future version.")]
-        public bool HasItemGroup(SelectionCriteria criteria, params PatternSet[] definitions)
-        {
-            return FindBestItemGroup(criteria, definitions) != null;
         }
 
         public ContentItemGroup? FindBestItemGroup(SelectionCriteria criteria, params PatternSet[] definitions)

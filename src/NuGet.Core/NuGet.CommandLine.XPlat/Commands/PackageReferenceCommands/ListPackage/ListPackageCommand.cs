@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -129,7 +131,7 @@ namespace NuGet.CommandLine.XPlat
                         isVulnerable: vulnerableReport.HasValue());
 
                     IReportRenderer reportRenderer = GetOutputType(outputFormat.Value(), outputVersionOption: outputVersion.Value());
-
+                    var provider = new PackageSourceProvider(settings);
                     var packageRefArgs = new ListPackageArgs(
                         path.Value,
                         packageSources,
@@ -140,6 +142,7 @@ namespace NuGet.CommandLine.XPlat
                         prerelease.HasValue(),
                         highestPatch.HasValue(),
                         highestMinor.HasValue(),
+                        provider.LoadAuditSources(),
                         logger,
                         CancellationToken.None);
 

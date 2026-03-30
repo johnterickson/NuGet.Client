@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -707,41 +709,6 @@ namespace NuGet.CommandLine
         }
 
         /// <summary>
-        /// Gets the (first) path of MSBuild to appear in environment variable PATH.
-        /// </summary>
-        /// <returns>The path of MSBuild in PATH environment variable. Returns null if MSBuild location does not exist
-        /// in the variable string.</returns>
-        private static string GetMsBuildPathInPathVar(IEnvironmentVariableReader reader)
-        {
-            var path = reader.GetEnvironmentVariable("PATH");
-            var paths = path?.Split(new char[] { ';' });
-            return paths?.Select(p =>
-            {
-                // Strip leading/trailing quotes
-                if (p.Length > 0 && p[0] == '\"')
-                {
-                    p = p.Substring(1);
-                }
-                if (p.Length > 0 && p[p.Length - 1] == '\"')
-                {
-                    p = p.Substring(0, p.Length - 1);
-                }
-
-                return p;
-            }).FirstOrDefault(p =>
-            {
-                try
-                {
-                    return File.Exists(Path.Combine(p, "msbuild.exe"));
-                }
-                catch
-                {
-                    return false;
-                }
-            });
-        }
-
-        /// <summary>
         /// Gets the msbuild toolset found in/under the path passed.
         /// </summary>
         /// <param name="msBuildPath">The msbuild path as found in PATH env var. Can be null.</param>
@@ -874,6 +841,16 @@ namespace NuGet.CommandLine
                 console?.WriteLine(LocalizedResourceManager.GetString(
                                nameof(NuGetResources.MSbuildFromPath)),
                            msbuildPath);
+
+                if (msbuildPath.EndsWith("MSBuild.exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    string msbuildDirectory = Path.GetDirectoryName(msbuildPath);
+
+                    if (!string.IsNullOrWhiteSpace(msbuildDirectory))
+                    {
+                        msbuildPath = msbuildDirectory;
+                    }
+                }
 
                 if (!Directory.Exists(msbuildPath))
                 {

@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using FluentAssertions;
@@ -266,11 +268,6 @@ namespace NuGet.PackageManagement.Test.BuildIntegration
                 versionRange: _versionRange);
 
             action.ActionAndContextList.Should().HaveCount(2);
-#pragma warning disable CS0618 // Type or member is obsolete
-            action.OriginalActions.Should().HaveCount(2);
-            action.OriginalActions[0].Should().Be(firstProjectAction);
-            action.InstallationContext.Should().Be(firstInstallationContext);
-#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         [Fact]

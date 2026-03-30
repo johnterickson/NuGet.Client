@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -264,7 +266,7 @@ namespace NuGet.Packaging
             if (referenceGroups.Any())
             {
                 // the 'any' group from references, for pre2.5 nuspecs this will be the only group
-                var fallbackGroup = referenceGroups.Where(g => g.TargetFramework.Equals(NuGetFramework.AnyFramework)).FirstOrDefault();
+                var fallbackGroup = referenceGroups.FirstOrDefault(g => g.TargetFramework.Equals(NuGetFramework.AnyFramework));
 
                 foreach (var fileGroup in fileGroups)
                 {

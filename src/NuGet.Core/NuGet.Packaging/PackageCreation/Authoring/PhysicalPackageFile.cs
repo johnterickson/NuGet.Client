@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.IO;
 using System.Runtime.Versioning;
@@ -22,7 +24,7 @@ namespace NuGet.Packaging
 
         public PhysicalPackageFile(MemoryStream stream)
         {
-            MemoryStream = stream;
+            _memoryStream = stream;
         }
 
         internal PhysicalPackageFile(Func<Stream> streamFactory)
@@ -30,7 +32,7 @@ namespace NuGet.Packaging
             _streamFactory = streamFactory;
         }
 
-        private MemoryStream MemoryStream { get; set; }
+        private readonly MemoryStream _memoryStream;
 
         /// <summary>
         /// Path on disk
@@ -101,7 +103,7 @@ namespace NuGet.Packaging
             else
             {
                 _lastWriteTime = DateTimeOffset.UtcNow;
-                return MemoryStream;
+                return _memoryStream;
             }
         }
 

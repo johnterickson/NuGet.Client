@@ -133,7 +133,7 @@ namespace NuGet.PackageManagement.VisualStudio.Test
         [InlineData(@"C:\packagePath", @"C:\packagePath")]
         [InlineData(null, @"C:\defaultPackagesPath")]
         [InlineData("globalPackages", @"C:\project\globalPackages")]
-        public void VSRestoreSettingsUtilities_PackagePath(string packagesPath, string expectedPackagesPath)
+        public void VSRestoreSettingsUtilities_PackagePath(string? packagesPath, string expectedPackagesPath)
         {
             using (var mockBaseDirectory = TestDirectory.Create())
             {

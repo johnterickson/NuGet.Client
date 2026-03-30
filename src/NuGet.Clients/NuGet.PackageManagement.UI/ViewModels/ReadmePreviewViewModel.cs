@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.IO;
 using System.Threading;
@@ -11,7 +13,7 @@ using NuGet.VisualStudio.Internal.Contracts;
 
 namespace NuGet.PackageManagement.UI.ViewModels
 {
-    public sealed class ReadmePreviewViewModel : TitledPageViewModelBase
+    public sealed class ReadmePreviewViewModel : TitledPageViewModelBase, IDisposable
     {
         private bool _errorWithReadme;
         private INuGetPackageFileService _nugetPackageFileService;
@@ -19,8 +21,13 @@ namespace NuGet.PackageManagement.UI.ViewModels
         private DetailedPackageMetadata _packageMetadata;
         private bool _canRenderLocalReadme;
         private bool _isBusy;
+        private bool _disposed;
+        private CancellationTokenSource _readmeLoadingCancellationTokenSource = new CancellationTokenSource();
 
+
+#pragma warning disable CS0618 // Type or member is obsolete
         public ReadmePreviewViewModel(INuGetPackageFileService packageFileService, ItemFilter itemFilter, bool isReadmeFeatureEnabled)
+#pragma warning restore CS0618 // Type or member is obsolete
         {
             _nugetPackageFileService = packageFileService ?? throw new ArgumentNullException(nameof(packageFileService));
             _canRenderLocalReadme = CanRenderLocalReadme(itemFilter);
@@ -31,6 +38,11 @@ namespace NuGet.PackageManagement.UI.ViewModels
             _packageMetadata = null;
             Title = Resources.Label_Readme_Tab;
             IsVisible = isReadmeFeatureEnabled;
+        }
+
+        public void SetVisibility(bool isVisible)
+        {
+            IsVisible = isVisible;
         }
 
         public bool IsReadmeReady { get => !IsBusy && !ErrorWithReadme; }
@@ -69,18 +81,31 @@ namespace NuGet.PackageManagement.UI.ViewModels
             {
                 if (_packageMetadata != null)
                 {
-                    await LoadReadmeAsync(CancellationToken.None);
+                    var newToken = ExchangeCancellationTokenSource();
+                    await LoadReadmeAsync(newToken.Token);
                 }
             }
         }
 
-        public async Task SetPackageMetadataAsync(DetailedPackageMetadata packageMetadata, CancellationToken cancellationToken)
+        public async Task SetPackageMetadataAsync(DetailedPackageMetadata packageMetadata)
         {
-            if (packageMetadata != null && (!string.Equals(packageMetadata.Id, _packageMetadata?.Id) || packageMetadata.Version != _packageMetadata?.Version))
+            if (ShouldUpdatePackageMetadata(packageMetadata))
             {
+                var newToken = ExchangeCancellationTokenSource();
                 _packageMetadata = packageMetadata;
-                await LoadReadmeAsync(cancellationToken);
+                await LoadReadmeAsync(newToken.Token);
             }
+        }
+
+        // for testing purposes
+        internal bool ShouldUpdatePackageMetadata(DetailedPackageMetadata packageMetadata)
+        {
+            return packageMetadata != null && (
+                !string.Equals(packageMetadata.Id, _packageMetadata?.Id)
+                || packageMetadata.Version != _packageMetadata?.Version
+                || !string.Equals(packageMetadata.ReadmeFileUrl, _packageMetadata?.ReadmeFileUrl)
+                || !string.Equals(packageMetadata.PackagePath, _packageMetadata?.PackagePath)
+                );
         }
 
         private static bool CanRenderLocalReadme(ItemFilter filter)
@@ -127,11 +152,42 @@ namespace NuGet.PackageManagement.UI.ViewModels
             }
             finally
             {
-                ReadmeMarkdown = readme;
-                IsVisible = !string.IsNullOrWhiteSpace(readme);
-                ErrorWithReadme = false;
-                IsBusy = false;
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    ReadmeMarkdown = readme;
+                    IsVisible = !string.IsNullOrWhiteSpace(readme);
+                    ErrorWithReadme = false;
+                    IsBusy = false;
+                }
             }
+        }
+
+        private CancellationTokenSource ExchangeCancellationTokenSource()
+        {
+            var newCts = new CancellationTokenSource();
+            var oldCts = Interlocked.Exchange(ref _readmeLoadingCancellationTokenSource, newCts);
+            oldCts?.Cancel();
+            oldCts?.Dispose();
+            return newCts;
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _readmeLoadingCancellationTokenSource?.Cancel();
+                    _readmeLoadingCancellationTokenSource?.Dispose();
+                }
+                _disposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

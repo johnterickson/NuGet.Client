@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -181,7 +183,7 @@ namespace NuGet.Packaging.Core
                 if (_metadataNode == null)
                 {
                     // find the metadata node regardless of the NS, some legacy packages have the NS here instead of on package
-                    _metadataNode = _xml.Root.Elements().Where(e => StringComparer.Ordinal.Equals(e.Name.LocalName, Metadata)).FirstOrDefault();
+                    _metadataNode = _xml.Root.Elements().FirstOrDefault(e => StringComparer.Ordinal.Equals(e.Name.LocalName, Metadata));
 
                     if (_metadataNode == null)
                     {

@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -2567,6 +2569,42 @@ $@"<configuration>
             // Assert
             result.Success.Should().BeTrue(result.AllOutput);
             Assert.DoesNotContain($"{server.Uri}push", result.Errors);
+        }
+
+        [Fact]
+        public void PushCommand_WhenPushingToAnHttpServerWithAllowInsecureConnectionsOptionTrue_Succeeds()
+        {
+            // Arrange
+            var nugetexe = Util.GetNuGetExePath();
+            using var packageDirectory = TestDirectory.Create();
+            var packageFileName = Util.CreateTestPackage("test", "1.1.0", packageDirectory);
+            var outputFileName = Path.Combine(packageDirectory, "t1.nupkg");
+
+            using var server = new MockServer();
+            server.Get.Add("/push", r => "OK");
+            server.Put.Add("/push", r =>
+            {
+                byte[] buffer = MockServer.GetPushedPackage(r);
+                using (var of = new FileStream(outputFileName, FileMode.Create))
+                {
+                    of.Write(buffer, 0, buffer.Length);
+                }
+
+                return HttpStatusCode.Created;
+            });
+
+            server.Start();
+
+            // Act
+            var result = CommandRunner.Run(
+                            nugetexe,
+                            Directory.GetCurrentDirectory(),
+                            $"push {packageFileName} -Source {server.Uri}push -AllowInsecureConnections");
+
+            // Assert
+            result.Success.Should().BeTrue(result.AllOutput);
+            Assert.DoesNotContain($"{server.Uri}push", result.Errors);
+            Assert.True(File.Exists(outputFileName), "The output file was not created as expected.");
         }
 
         [Fact]

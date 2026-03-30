@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Windows.Controls;
 using NuGet.PackageManagement.UI.ViewModels;
@@ -24,7 +26,10 @@ namespace NuGet.PackageManagement.UI
         {
             InitializeComponent();
             DataContext = new PackageDetailsTabViewModel();
+            PackageReadmeControl = new PackageReadmeControl();
         }
+
+        public PackageReadmeControl PackageReadmeControl { get; private set; }
 
         public void Dispose()
         {
@@ -41,6 +46,7 @@ namespace NuGet.PackageManagement.UI
             if (disposing)
             {
                 PackageDetailsTabViewModel.Dispose();
+                PackageReadmeControl.Dispose();
             }
             _disposed = true;
         }

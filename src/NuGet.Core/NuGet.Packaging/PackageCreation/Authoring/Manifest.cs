@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -148,8 +150,8 @@ namespace NuGet.Packaging
             // Update manifest metadata version if version was provided by the CLI command
             if (propertyProvider is not null && propertyProvider.Target.GetType().Name.Equals("PackArgs"))
             {
-                var version = propertyProvider("version");
-                if (version is not null)
+                var versionProperty = propertyProvider.Target.GetType().GetProperty("Version");
+                if (versionProperty?.GetValue(propertyProvider.Target) is string version)
                 {
                     manifest.Metadata.Version = NuGetVersion.Parse(version);
                 }
@@ -240,6 +242,7 @@ namespace NuGet.Packaging
 #endif
         }
 
+#if !IS_CORECLR 
         private static string GetPackageId(XElement metadataElement)
         {
             XName idName = XName.Get("id", metadataElement.Document.Root.Name.NamespaceName);
@@ -260,6 +263,7 @@ namespace NuGet.Packaging
 
             return document.Root.Element(metadataName);
         }
+#endif
 
         public static void Validate(Manifest manifest)
         {

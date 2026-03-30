@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -125,7 +127,6 @@ namespace NuGet.Protocol
             var frameworkReducer = new FrameworkReducer();
             var dependencies = await GetDependencies(httpClient, registrationUri, packageId, range, cacheContext, log, token);
 
-            var result = new HashSet<RegistrationInfo>();
             var registrationInfo = new RegistrationInfo();
 
             registrationInfo.IncludePrerelease = true;

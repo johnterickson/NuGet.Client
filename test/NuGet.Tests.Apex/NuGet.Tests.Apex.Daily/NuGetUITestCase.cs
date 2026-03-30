@@ -19,20 +19,18 @@ namespace NuGet.Tests.Apex.Daily
         private const string TestPackageVersionV1 = "1.0.0";
         private const string TestPackageVersionV2 = "2.0.0";
 
+        private const ProjectTargetFramework DefaultTargetFramework = ProjectTargetFramework.V48;
+
         private readonly SimpleTestPathContext _pathContext = new SimpleTestPathContext();
 
-        public NuGetUITestCase()
-            : base()
-        {
-        }
-
         [TestMethod]
-        [DataRow(ProjectTemplate.WebSiteEmpty)]
-        [DataRow(ProjectTemplate.WebSite)]
-        [DataRow(ProjectTemplate.WebSiteRazorV3)]
-        [DataRow(ProjectTemplate.WebSiteDynamicDataEntityFramework)]
+        [DataRow(ProjectTemplate.WebSiteEmpty, DefaultTargetFramework)]
+        [DataRow(ProjectTemplate.WebSite, DefaultTargetFramework)]
+        [DataRow(ProjectTemplate.WebSiteRazorV3, DefaultTargetFramework)]
+        [DataRow(ProjectTemplate.WebSiteDynamicDataEntityFramework, DefaultTargetFramework)]
+        [DataRow(ProjectTemplate.WebSiteDynamicDataLinqToSql, DefaultTargetFramework)]
         [Timeout(DefaultTimeout)]
-        public async Task InstallPackageToWebSiteProjectFromUI(ProjectTemplate projectTemplate)
+        public async Task InstallPackageToWebSiteProjectFromUI(ProjectTemplate projectTemplate, ProjectTargetFramework projectTargetFramework)
         {
             // Arrange
             await CommonUtility.CreatePackageInSourceAsync(_pathContext.PackageSource, TestPackageName, TestPackageVersionV1);
@@ -41,7 +39,7 @@ namespace NuGet.Tests.Apex.Daily
 
             SolutionService solutionService = VisualStudio.Get<SolutionService>();
             solutionService.CreateEmptySolution("TestSolution", _pathContext.SolutionRoot);
-            ProjectTestExtension project = solutionService.AddProject(ProjectLanguage.CSharp, projectTemplate, ProjectTargetFramework.V48, "TestProject");
+            ProjectTestExtension project = solutionService.AddProject(ProjectLanguage.CSharp, projectTemplate, projectTargetFramework, "TestProject");
 
             VisualStudio.ClearOutputWindow();
             solutionService.SaveAll();
@@ -56,12 +54,13 @@ namespace NuGet.Tests.Apex.Daily
         }
 
         [TestMethod]
-        [DataRow(ProjectTemplate.WebSiteEmpty)]
-        [DataRow(ProjectTemplate.WebSite)]
-        [DataRow(ProjectTemplate.WebSiteRazorV3)]
-        [DataRow(ProjectTemplate.WebSiteDynamicDataEntityFramework)]
+        [DataRow(ProjectTemplate.WebSiteEmpty, DefaultTargetFramework)]
+        [DataRow(ProjectTemplate.WebSite, DefaultTargetFramework)]
+        [DataRow(ProjectTemplate.WebSiteRazorV3, DefaultTargetFramework)]
+        [DataRow(ProjectTemplate.WebSiteDynamicDataEntityFramework, DefaultTargetFramework)]
+        [DataRow(ProjectTemplate.WebSiteDynamicDataLinqToSql, DefaultTargetFramework)]
         [Timeout(DefaultTimeout)]
-        public async Task UpdateWebSitePackageFromUI(ProjectTemplate projectTemplate)
+        public async Task UpdateWebSitePackageFromUI(ProjectTemplate projectTemplate, ProjectTargetFramework projectTargetFramework)
         {
             // Arrange
             await CommonUtility.CreatePackageInSourceAsync(_pathContext.PackageSource, TestPackageName, TestPackageVersionV1);
@@ -71,7 +70,7 @@ namespace NuGet.Tests.Apex.Daily
 
             SolutionService solutionService = VisualStudio.Get<SolutionService>();
             solutionService.CreateEmptySolution("TestSolution", _pathContext.SolutionRoot);
-            ProjectTestExtension project = solutionService.AddProject(ProjectLanguage.CSharp, projectTemplate, ProjectTargetFramework.V48, "TestProject");
+            ProjectTestExtension project = solutionService.AddProject(ProjectLanguage.CSharp, projectTemplate, projectTargetFramework, "TestProject");
 
             VisualStudio.ClearOutputWindow();
             solutionService.SaveAll();
@@ -88,12 +87,13 @@ namespace NuGet.Tests.Apex.Daily
         }
 
         [TestMethod]
-        [DataRow(ProjectTemplate.WebSiteEmpty)]
-        [DataRow(ProjectTemplate.WebSite)]
-        [DataRow(ProjectTemplate.WebSiteRazorV3)]
-        [DataRow(ProjectTemplate.WebSiteDynamicDataEntityFramework)]
+        [DataRow(ProjectTemplate.WebSiteEmpty, DefaultTargetFramework)]
+        [DataRow(ProjectTemplate.WebSite, DefaultTargetFramework)]
+        [DataRow(ProjectTemplate.WebSiteRazorV3, DefaultTargetFramework)]
+        [DataRow(ProjectTemplate.WebSiteDynamicDataEntityFramework, DefaultTargetFramework)]
+        [DataRow(ProjectTemplate.WebSiteDynamicDataLinqToSql, DefaultTargetFramework)]
         [Timeout(DefaultTimeout)]
-        public async Task UninstallWebSitePackageFromUI(ProjectTemplate projectTemplate)
+        public async Task UninstallWebSitePackageFromUI(ProjectTemplate projectTemplate, ProjectTargetFramework projectTargetFramework)
         {
             // Arrange
             await CommonUtility.CreatePackageInSourceAsync(_pathContext.PackageSource, TestPackageName, TestPackageVersionV1);
@@ -102,7 +102,7 @@ namespace NuGet.Tests.Apex.Daily
 
             SolutionService solutionService = VisualStudio.Get<SolutionService>();
             solutionService.CreateEmptySolution("TestSolution", _pathContext.SolutionRoot);
-            ProjectTestExtension project = solutionService.AddProject(ProjectLanguage.CSharp, projectTemplate, ProjectTargetFramework.V48, "TestProject");
+            ProjectTestExtension project = solutionService.AddProject(ProjectLanguage.CSharp, projectTemplate, projectTargetFramework, "TestProject");
 
             VisualStudio.ClearOutputWindow();
             solutionService.SaveAll();
@@ -130,7 +130,7 @@ namespace NuGet.Tests.Apex.Daily
 
             SolutionService solutionService = VisualStudio.Get<SolutionService>();
             solutionService.CreateEmptySolution("TestSolution", _pathContext.SolutionRoot);
-            ProjectTestExtension project = solutionService.AddProject(ProjectLanguage.CSharp, ProjectTemplate.ClassLibrary, ProjectTargetFramework.V48, "TestProject");
+            ProjectTestExtension project = solutionService.AddProject(ProjectLanguage.CSharp, ProjectTemplate.ClassLibrary, DefaultTargetFramework, "TestProject");
             VisualStudio.ClearOutputWindow();
             solutionService.SaveAll();
 
@@ -161,7 +161,7 @@ namespace NuGet.Tests.Apex.Daily
 
             SolutionService solutionService = VisualStudio.Get<SolutionService>();
             solutionService.CreateEmptySolution("TestSolution", _pathContext.SolutionRoot);
-            ProjectTestExtension project = solutionService.AddProject(ProjectLanguage.CSharp, ProjectTemplate.ClassLibrary, ProjectTargetFramework.V48, "TestProject");
+            ProjectTestExtension project = solutionService.AddProject(ProjectLanguage.CSharp, ProjectTemplate.ClassLibrary, DefaultTargetFramework, "TestProject");
             VisualStudio.ClearOutputWindow();
             solutionService.SaveAll();
 
@@ -191,7 +191,7 @@ namespace NuGet.Tests.Apex.Daily
 
             SolutionService solutionService = VisualStudio.Get<SolutionService>();
             solutionService.CreateEmptySolution("TestSolution", _pathContext.SolutionRoot);
-            ProjectTestExtension project = solutionService.AddProject(ProjectLanguage.CSharp, ProjectTemplate.ClassLibrary, ProjectTargetFramework.V48, "TestProject");
+            ProjectTestExtension project = solutionService.AddProject(ProjectLanguage.CSharp, ProjectTemplate.ClassLibrary, DefaultTargetFramework, "TestProject");
             VisualStudio.ClearOutputWindow();
             solutionService.SaveAll();
 
@@ -408,7 +408,7 @@ namespace NuGet.Tests.Apex.Daily
             uiwindow.InstallPackageFromUI(TestPackageName, TestPackageVersionV1);
             solutionService.Build();
 
-            CommonUtility.AssertPackageReferenceExists(VisualStudio, project, TestPackageName, TestPackageVersionV1, Logger);
+            CommonUtility.AssertPackageReferenceExists(project, TestPackageName, TestPackageVersionV1, Logger);
             uiwindow.AssertPackageNameAndType(TestPackageName, NuGet.VisualStudio.PackageLevel.TopLevel);
             uiwindow.AssertPackageNameAndType(transitivePackageName, NuGet.VisualStudio.PackageLevel.Transitive);
 
@@ -451,7 +451,7 @@ namespace NuGet.Tests.Apex.Daily
 
             // Assert
             VisualStudio.AssertNoErrors();
-            CommonUtility.AssertPackageReferenceExists(VisualStudio, project, transitivePackageName, TestPackageVersionV1, Logger);
+            CommonUtility.AssertPackageReferenceExists(project, transitivePackageName, TestPackageVersionV1, Logger);
             uiwindow.AssertPackageNameAndType(transitivePackageName, NuGet.VisualStudio.PackageLevel.TopLevel);
         }
 
@@ -483,7 +483,7 @@ namespace NuGet.Tests.Apex.Daily
             uiwindow.InstallPackageFromUI(transitivePackageName, TestPackageVersionV1);
             solutionService.Build();
 
-            CommonUtility.AssertPackageReferenceExists(VisualStudio, project, transitivePackageName, TestPackageVersionV1, Logger);
+            CommonUtility.AssertPackageReferenceExists(project, transitivePackageName, TestPackageVersionV1, Logger);
             uiwindow.AssertPackageNameAndType(transitivePackageName, NuGet.VisualStudio.PackageLevel.TopLevel);
 
             // Act
@@ -492,7 +492,7 @@ namespace NuGet.Tests.Apex.Daily
 
             // Assert
             VisualStudio.AssertNoErrors();
-            CommonUtility.AssertPackageReferenceDoesNotExist(VisualStudio, project, transitivePackageName, Logger);
+            CommonUtility.AssertPackageReferenceDoesNotExist(project, transitivePackageName, Logger);
             uiwindow.AssertPackageNameAndType(TestPackageName, NuGet.VisualStudio.PackageLevel.TopLevel);
             uiwindow.AssertPackageNameAndType(transitivePackageName, NuGet.VisualStudio.PackageLevel.Transitive);
         }
@@ -519,7 +519,7 @@ namespace NuGet.Tests.Apex.Daily
             uiwindow.InstallPackageFromUI(TestPackageName, TestPackageVersionV1);
             solutionService.Build();
 
-            CommonUtility.AssertPackageReferenceExists(VisualStudio, project, TestPackageName, TestPackageVersionV1, Logger);
+            CommonUtility.AssertPackageReferenceExists(project, TestPackageName, TestPackageVersionV1, Logger);
             uiwindow.AssertPackageNameAndType(TestPackageName, NuGet.VisualStudio.PackageLevel.TopLevel);
             uiwindow.AssertPackageNameAndType(transitivePackageName, NuGet.VisualStudio.PackageLevel.Transitive);
 
@@ -553,7 +553,7 @@ namespace NuGet.Tests.Apex.Daily
             uiwindow.InstallPackageFromUI(TestPackageName, TestPackageVersionV1);
             solutionService.Build();
 
-            CommonUtility.AssertPackageReferenceExists(VisualStudio, project, TestPackageName, TestPackageVersionV1, Logger);
+            CommonUtility.AssertPackageReferenceExists(project, TestPackageName, TestPackageVersionV1, Logger);
             uiwindow.AssertPackageNameAndType(TestPackageName, NuGet.VisualStudio.PackageLevel.TopLevel);
             uiwindow.AssertPackageNameAndType(transitivePackageName, NuGet.VisualStudio.PackageLevel.Transitive);
 
@@ -593,7 +593,7 @@ namespace NuGet.Tests.Apex.Daily
             VisualStudio.AssertNoErrors();
             uiwindow.AssertPackageNameAndType(TestPackageName, NuGet.VisualStudio.PackageLevel.TopLevel);
             uiwindow.AssertPackageNameAndType(transitivePackageName, NuGet.VisualStudio.PackageLevel.Transitive);
-            CommonUtility.AssertPackageReferenceExists(VisualStudio, project, TestPackageName, TestPackageVersionV1, Logger);
+            CommonUtility.AssertPackageReferenceExists(project, TestPackageName, TestPackageVersionV1, Logger);
         }
 
         [TestMethod]
@@ -618,7 +618,7 @@ namespace NuGet.Tests.Apex.Daily
             uiwindow.InstallPackageFromUI(TestPackageName, TestPackageVersionV1);
             solutionService.Build();
 
-            CommonUtility.AssertPackageReferenceExists(VisualStudio, project, TestPackageName, TestPackageVersionV1, Logger);
+            CommonUtility.AssertPackageReferenceExists(project, TestPackageName, TestPackageVersionV1, Logger);
             uiwindow.AssertPackageNameAndType(TestPackageName, NuGet.VisualStudio.PackageLevel.TopLevel);
             uiwindow.AssertPackageNameAndType(transitivePackageName, NuGet.VisualStudio.PackageLevel.Transitive);
 
@@ -629,7 +629,7 @@ namespace NuGet.Tests.Apex.Daily
             // Assert
             VisualStudio.AssertNoErrors();
             uiwindow.AssertPackageListIsNullOrEmpty();
-            CommonUtility.AssertPackageReferenceDoesNotExist(VisualStudio, project, TestPackageName, Logger);
+            CommonUtility.AssertPackageReferenceDoesNotExist(project, TestPackageName, Logger);
         }
 
         [TestMethod]
@@ -733,7 +733,7 @@ namespace NuGet.Tests.Apex.Daily
             // Arrange
             SolutionService solutionService = VisualStudio.Get<SolutionService>();
             solutionService.CreateEmptySolution("TestSolution", _pathContext.SolutionRoot);
-            solutionService.AddProject(ProjectLanguage.CSharp, ProjectTemplate.MauiClassLibrary, "TestProject");
+            solutionService.AddProject(ProjectLanguage.CSharp, ProjectTemplate.NetCoreClassLib, "TestProject");
             VisualStudio.ClearOutputWindow();
             solutionService.SaveAll();
 
@@ -875,6 +875,68 @@ namespace NuGet.Tests.Apex.Daily
             //// Assert
             VisualStudio.AssertNoErrors();
             CommonUtility.AssertPackageNotInAssetsFile(VisualStudio, project, TestPackageName, TestPackageVersionV1, Logger);
+        }
+
+        [TestMethod]
+        [Timeout(DefaultTimeout)]
+        public async Task VerifyDeletedAssetsFileIsBackByRestoringPackage()
+        {
+            // Arrange
+            await CommonUtility.CreatePackageInSourceAsync(_pathContext.PackageSource, TestPackageName, TestPackageVersionV1);
+
+            NuGetApexTestService nugetTestService = GetNuGetTestService();
+            _pathContext.Settings.SetPackageFormatToPackageReference();
+
+            SolutionService solutionService = VisualStudio.Get<SolutionService>();
+            solutionService.CreateEmptySolution("TestSolution", _pathContext.SolutionRoot);
+            ProjectTestExtension project = solutionService.AddProject(ProjectLanguage.CSharp, ProjectTemplate.ConsoleApplication, "TestProject");
+            VisualStudio.ClearOutputWindow();
+            solutionService.SaveAll();
+
+            CommonUtility.OpenNuGetPackageManagerWithDte(VisualStudio, Logger);
+            NuGetUIProjectTestExtension uiwindow = nugetTestService.GetUIWindowfromProject(project);
+            uiwindow.InstallPackageFromUI(TestPackageName, TestPackageVersionV1);
+
+            var assetsFilePath = CommonUtility.GetAssetsFilePath(project.FullPath);
+            CommonUtility.WaitForFileExists(new FileInfo(assetsFilePath));
+            File.Delete(assetsFilePath);
+
+            // Act
+            CommonUtility.RestoreNuGetPackages(VisualStudio, Logger);
+
+            // Assert
+            CommonUtility.WaitForFileExists(new FileInfo(assetsFilePath));
+        }
+
+        [TestMethod]
+        [Timeout(DefaultTimeout)]
+        public async Task VerifyDeletedAssetsFileIsBackByReloadingProject()
+        {
+            // Arrange
+            await CommonUtility.CreatePackageInSourceAsync(_pathContext.PackageSource, TestPackageName, TestPackageVersionV1);
+
+            NuGetApexTestService nugetTestService = GetNuGetTestService();
+            _pathContext.Settings.SetPackageFormatToPackageReference();
+
+            SolutionService solutionService = VisualStudio.Get<SolutionService>();
+            solutionService.CreateEmptySolution("TestSolution", _pathContext.SolutionRoot);
+            ProjectTestExtension project = solutionService.AddProject(ProjectLanguage.CSharp, ProjectTemplate.NetCoreConsoleApp, "TestProject");
+            VisualStudio.ClearOutputWindow();
+            solutionService.SaveAll();
+
+            CommonUtility.OpenNuGetPackageManagerWithDte(VisualStudio, Logger);
+            NuGetUIProjectTestExtension uiwindow = nugetTestService.GetUIWindowfromProject(project);
+            uiwindow.InstallPackageFromUI(TestPackageName, TestPackageVersionV1);
+
+            var assetsFilePath = CommonUtility.GetAssetsFilePath(project.FullPath);
+            CommonUtility.WaitForFileExists(new FileInfo(assetsFilePath));
+            File.Delete(assetsFilePath);
+
+            // Act
+            CommonUtility.AutoRestorePackageByReloadingProject(VisualStudio, project);
+
+            // Assert
+            CommonUtility.WaitForFileExists(new FileInfo(assetsFilePath));
         }
 
         public override void Dispose()

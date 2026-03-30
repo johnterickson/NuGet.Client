@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Globalization;
 using System.IO;
@@ -271,6 +273,7 @@ namespace NuGet.XPlat.FuncTest
         [Theory]
         [InlineData("signatureValidationMode", "accept")]
         [InlineData("maxHttpRequestsPerSource", "64")]
+        [InlineData("updatePackageLastAccessTime", "true")]
         public void ConfigSetCommand_WithConfigFileArg_AddsSetting(string key, string value)
         {
             // Arrange & Act
@@ -497,7 +500,7 @@ namespace NuGet.XPlat.FuncTest
         }
 
         [Fact]
-        public void ConfigGetCommand_WithInvalidConfigKeyArg_ThrowsCommandException()
+        public void ConfigGetCommand_WithInvalidConfigKeyArg_OutputsErrorMessage()
         {
             // Arrange & Act
             using var testInfo = new TestInfo("NuGet.Config");
@@ -515,7 +518,7 @@ namespace NuGet.XPlat.FuncTest
         }
 
         [Fact]
-        public void ConfigGetCommand_WithNullAllOrConfigKeyArg_ThrowsCommandException()
+        public void ConfigGetCommand_WithoutConfigKeyArg_OutputsErrorMessage()
         {
             // Arrange & Act
             using var testInfo = new TestInfo("NuGet.Config");
@@ -525,7 +528,7 @@ namespace NuGet.XPlat.FuncTest
                 Directory.GetCurrentDirectory(),
                 $"{XplatDll} config get",
                 testOutputHelper: _testOutputHelper);
-            var expectedError = string.Format(CultureInfo.CurrentCulture, Strings.ConfigCommandKeyNotFound, "");
+            var expectedError = "Required argument missing";
 
             // Assert
             DotnetCliUtil.VerifyResultFailure(result, expectedError);

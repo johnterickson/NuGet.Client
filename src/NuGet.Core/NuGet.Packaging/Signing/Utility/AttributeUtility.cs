@@ -1,7 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#if IS_SIGNING_SUPPORTED
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -9,13 +10,11 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
-#endif
 
 namespace NuGet.Packaging.Signing
 {
     public static class AttributeUtility
     {
-#if IS_SIGNING_SUPPORTED
         /// <summary>
         /// Create a CommitmentTypeIndication attribute.
         /// https://tools.ietf.org/html/rfc5126.html#section-5.11.1
@@ -290,30 +289,6 @@ namespace NuGet.Packaging.Signing
         }
 
         /// <summary>
-        /// Throw a signature exception due to an invalid attribute. This is used for unusual situations
-        /// where the format is corrupt.
-        /// </summary>
-        private static void ThrowInvalidAttributeException(CryptographicAttributeObject attribute)
-        {
-            throw new SignatureException(string.Format(CultureInfo.CurrentCulture, Strings.SignatureContainsInvalidAttribute, attribute.Oid.Value));
-        }
-
-        /// <summary>
-        /// Enumerate AsnEncodedDataCollection
-        /// </summary>
-        private static List<AsnEncodedData> ToList(this AsnEncodedDataCollection collection)
-        {
-            var values = new List<AsnEncodedData>();
-
-            foreach (var value in collection)
-            {
-                values.Add(value);
-            }
-
-            return values;
-        }
-
-        /// <summary>
         /// Attribute -> SignatureType values with no validation.
         /// </summary>
         private static IEnumerable<SignatureType> GetCommitmentTypeIndicationRawValues(CryptographicAttributeObject attribute)
@@ -392,6 +367,5 @@ namespace NuGet.Packaging.Signing
             return attributes.Cast<CryptographicAttributeObject>()
                 .Where(attribute => attribute.Oid.Value == oid);
         }
-#endif
     }
 }

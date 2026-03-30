@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -212,9 +214,7 @@ namespace NuGet.Protocol.Plugins
                 {
                     if (result.PluginFile.State.Value == PluginFileState.Valid)
                     {
-                        IPlugin plugin;
-
-                        plugin = await _pluginFactory.GetOrCreateAsync(
+                        IPlugin plugin = await _pluginFactory.GetOrCreateAsync(
                                 pluginFile: result.PluginFile,
                                 arguments: PluginConstants.PluginArguments,
                                 requestHandlers: new RequestHandlers(),

@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -114,7 +116,7 @@ namespace NuGet.ProjectModel
 
             var projectStyle = packageSpec?.RestoreMetadata?.ProjectStyle ?? ProjectStyle.Unknown;
 
-            // Read references from external project - we don't care about dotnettool projects, since they don't have project refs
+            // Read references from external project
             if (projectStyle == ProjectStyle.PackageReference)
             {
                 // NETCore
@@ -350,9 +352,6 @@ namespace NuGet.ProjectModel
 
             if (packageSpec != null)
             {
-                // Add dependencies section
-                dependencies.AddRange(packageSpec.Dependencies);
-
                 // Add framework specific dependencies
                 var targetFrameworkInfo = packageSpec.GetTargetFramework(targetFramework);
 
@@ -392,12 +391,28 @@ namespace NuGet.ProjectModel
                     // This will require that projects referenced by an msbuild project
                     // must be external projects.
                     var dependency = dependencies[i];
+                    bool isPruned = IsDependencyPruned(dependency, targetFrameworkInfo.PackagesToPrune);
                     var libraryRange = new LibraryRange(dependency.LibraryRange) { TypeConstraint = dependency.LibraryRange.TypeConstraint & ~LibraryDependencyTarget.Project };
-                    dependencies[i] = new LibraryDependency(dependency) { LibraryRange = libraryRange };
+                    dependencies[i] = new LibraryDependency(dependency)
+                    {
+                        LibraryRange = libraryRange,
+                        SuppressParent = isPruned ? LibraryIncludeFlags.All : dependency.SuppressParent,
+                        IncludeType = isPruned ? LibraryIncludeFlags.None : dependency.IncludeType,
+                    };
                 }
             }
 
             return dependencies;
+
+            static bool IsDependencyPruned(LibraryDependency dependency, IReadOnlyDictionary<string, PrunePackageReference> packagesToPrune)
+            {
+                if (packagesToPrune?.TryGetValue(dependency.Name, out PrunePackageReference packageToPrune) == true
+                    && dependency.LibraryRange.VersionRange.Satisfies(packageToPrune.VersionRange.MaxVersion))
+                {
+                    return true;
+                }
+                return false;
+            }
         }
 
         private bool IsProject(LibraryDependency dependency)

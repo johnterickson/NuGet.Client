@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,16 +24,6 @@ namespace NuGet.Commands
         private string _lockFilePath;
 
         private Lazy<LockFile> _lockFileLazy;
-
-        [Obsolete("Use constructor with LockFileBuilderCache parameter")]
-        public RestoreRequest(
-            PackageSpec project,
-            RestoreCommandProviders dependencyProviders,
-            SourceCacheContext cacheContext,
-            ClientPolicyContext clientPolicyContext,
-            ILogger log) : this(project, dependencyProviders, cacheContext, clientPolicyContext, packageSourceMapping: null, log, new LockFileBuilderCache())
-        {
-        }
 
         public RestoreRequest(
             PackageSpec project,

@@ -1,15 +1,14 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-
-#if IS_SIGNING_SUPPORTED
 using System.Linq;
 using NuGet.Common;
-#endif
 
 namespace NuGet.Packaging.Signing
 {
@@ -34,7 +33,6 @@ namespace NuGet.Packaging.Signing
             return Task.FromResult(VerifyAllowList(package, signature, settings));
         }
 
-#if IS_SIGNING_SUPPORTED
         private PackageVerificationResult VerifyAllowList(ISignedPackageReader package, PrimarySignature signature, SignedPackageVerifierSettings settings)
         {
             var treatIssuesAsErrors = !settings.AllowUntrusted;
@@ -170,12 +168,5 @@ namespace NuGet.Packaging.Signing
 
             return fingerprintString;
         }
-
-#else
-        private PackageVerificationResult VerifyAllowList(ISignedPackageReader package, PrimarySignature signature, SignedPackageVerifierSettings settings)
-        {
-            throw new NotSupportedException();
-        }
-#endif
     }
 }

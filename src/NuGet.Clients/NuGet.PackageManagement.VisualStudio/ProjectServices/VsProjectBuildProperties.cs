@@ -19,9 +19,9 @@ namespace NuGet.PackageManagement.VisualStudio
     internal class VsProjectBuildProperties
         : IVsProjectBuildProperties
     {
-        private readonly Lazy<Project> _dteProject;
-        private Project _project;
-        private readonly IVsBuildPropertyStorage _propertyStorage;
+        private readonly Lazy<Project>? _dteProject;
+        private Project? _project;
+        private readonly IVsBuildPropertyStorage? _propertyStorage;
         private readonly IVsProjectBuildPropertiesTelemetry _buildPropertiesTelemetry;
         private readonly string[] _projectTypeGuids;
 
@@ -53,7 +53,7 @@ namespace NuGet.PackageManagement.VisualStudio
             _projectTypeGuids = projectTypeGuids;
         }
 
-        public string GetPropertyValue(string propertyName)
+        public string? GetPropertyValue(string propertyName)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
             Assumes.NotNullOrEmpty(propertyName);
@@ -82,7 +82,7 @@ namespace NuGet.PackageManagement.VisualStudio
         }
 
         [Obsolete("New properties should use GetPropertyValue instead. Ideally we should migrate existing properties to stop using DTE as well.")]
-        public string GetPropertyValueWithDteFallback(string propertyName)
+        public string? GetPropertyValueWithDteFallback(string propertyName)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
             Assumes.NotNullOrEmpty(propertyName);
@@ -105,10 +105,10 @@ namespace NuGet.PackageManagement.VisualStudio
             {
                 if (_project == null)
                 {
-                    _project = _dteProject.Value;
+                    _project = _dteProject!.Value;
                 }
 
-                Property property = null;
+                Property? property;
                 var properties = _project.Properties;
                 if (Marshal.IsComObject(_project) && properties is INonThrowingDTEProjectProperties nonThrowingProperties)
                 {

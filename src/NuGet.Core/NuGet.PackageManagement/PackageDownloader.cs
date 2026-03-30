@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -219,8 +221,11 @@ namespace NuGet.PackageManagement
                     {
                         message = ExceptionUtilities.DisplayMessage(task.Exception);
                     }
-
+#if IS_DESKTOP
                     errors.AppendLine($"  {tasksLookup[task].PackageSource.Source}: {message}");
+#else
+                    errors.AppendLine(CultureInfo.CurrentCulture, $"  {tasksLookup[task].PackageSource.Source}: {message}");
+#endif
                 }
 
                 throw new FatalProtocolException(errors.ToString());

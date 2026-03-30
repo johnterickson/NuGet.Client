@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -135,8 +137,7 @@ namespace NuGet.Protocol
                 var allPackages = await FindPackagesByIdAsync(package.Id, sourceCacheContext, log, token);
 
                 return allPackages
-                    .Where(p => p.Version == package.Version)
-                    .FirstOrDefault();
+                    .FirstOrDefault(p => p.Version == package.Version);
             }
 
             return packages.Items.FirstOrDefault();

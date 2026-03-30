@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -23,7 +25,7 @@ namespace NuGet.Protocol
             CompletionOption = HttpCompletionOption.ResponseHeadersRead;
             MaxTries = DefaultMaxTries;
             RequestTimeout = TimeSpan.FromSeconds(100);
-            RetryDelay = TimeSpan.FromMilliseconds(200);
+            RetryDelay = TimeSpan.FromSeconds(1);
             DownloadTimeout = DefaultDownloadTimeout;
         }
 

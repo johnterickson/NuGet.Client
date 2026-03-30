@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -42,9 +44,6 @@ namespace NuGet.PackageManagement.VisualStudio
         public bool NominatesOnSolutionLoad { get; private set; } = false;
 
         #region INuGetProjectServices
-
-        [Obsolete]
-        public IProjectBuildProperties BuildProperties => throw new NotImplementedException();
 
         public IProjectSystemCapabilities Capabilities => this;
 

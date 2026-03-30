@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Globalization;
 using System.IO;
@@ -20,6 +22,11 @@ namespace Test.Utility
         public static string CreateServiceAddress()
         {
             return string.Format(CultureInfo.InvariantCulture, "http://{0}/", Guid.NewGuid());
+        }
+
+        public static string CreateHttpsServiceAddress()
+        {
+            return string.Format(CultureInfo.InvariantCulture, "https://{0}/", Guid.NewGuid());
         }
     }
 }

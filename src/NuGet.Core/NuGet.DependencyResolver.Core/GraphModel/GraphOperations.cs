@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -872,7 +874,7 @@ namespace NuGet.DependencyResolver
                 // Some node were marked ambiguous, thus we need another run to check if nodes previously not marked ambiguous should be marked ambiguous this time.
                 if (!nodeMarkedAmbiguous)
                     break;
-            };
+            }
         }
 
         private static void RejectCentralTransitiveBecauseOfRejectedParents<TItem>(this GraphNode<TItem> root, Tracker<TItem> tracker, List<GraphNode<TItem>> centralTransitiveNodes)

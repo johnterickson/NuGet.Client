@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -109,12 +111,6 @@ namespace NuGet.PackageManagement.UI
         {
             UpdateInstalledVersion();
             await CreateVersionsAsync(cancellationToken);
-        }
-
-        private static bool HasId(string id, IEnumerable<PackageIdentity> packages)
-        {
-            return packages.Any(p =>
-                StringComparer.OrdinalIgnoreCase.Equals(p.Id, id));
         }
 
         public override void CleanUp()

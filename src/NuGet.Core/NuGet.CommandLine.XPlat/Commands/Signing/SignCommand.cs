@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable enable
+
 using System;
 using System.Globalization;
 using System.IO;
@@ -236,16 +238,11 @@ namespace NuGet.CommandLine.XPlat
             {
                 bool isValidFingerprint = CertificateUtility.TryDeduceHashAlgorithm(fingerprint.Value(), out HashAlgorithmName hashAlgorithmName);
                 bool isSHA1 = hashAlgorithmName == HashAlgorithmName.SHA1;
-                int assemblyVersion = typeof(int).Assembly.GetName().Version.Major;
                 string message = string.Format(CultureInfo.CurrentCulture, Strings.SignCommandInvalidCertificateFingerprint, NuGetLogCode.NU3043);
 
-                if (!isValidFingerprint || (assemblyVersion >= 10 && isSHA1))
+                if (!isValidFingerprint || isSHA1)
                 {
                     throw new ArgumentException(message);
-                }
-                else if (isSHA1)
-                {
-                    logger.Log(LogMessage.Create(LogLevel.Warning, message));
                 }
             }
         }

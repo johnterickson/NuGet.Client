@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -44,8 +46,6 @@ namespace NuGetConsole.Host.PowerShell.Implementation
         private static bool PowerShellLoaded = false;
 
         private Microsoft.VisualStudio.Threading.AsyncLazy<IVsMonitorSelection> _vsMonitorSelection;
-        private IVsMonitorSelection VsMonitorSelection => ThreadHelper.JoinableTaskFactory.Run(_vsMonitorSelection.GetValueAsync);
-
 #pragma warning disable RS0030 // Do not used banned APIs
         private readonly AsyncSemaphore _initScriptsLock = new AsyncSemaphore(1);
 #pragma warning restore RS0030 // Do not used banned APIs

@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.IO;
 
@@ -193,27 +195,6 @@ namespace NuGet.Test.Utility
             {
                 throw new InvalidOperationException("Trying to delete the root test folder in a test");
             }
-        }
-
-        private class ResetDirectory : IDisposable
-        {
-            public string OldPath { get; set; }
-
-            void IDisposable.Dispose()
-            {
-                Directory.SetCurrentDirectory(OldPath);
-            }
-        }
-
-        public static IDisposable SetCurrentDirectory(string path)
-        {
-            var oldPath = Directory.GetCurrentDirectory();
-            Directory.SetCurrentDirectory(path);
-
-            return new ResetDirectory()
-            {
-                OldPath = oldPath
-            };
         }
 
         public static DirectoryInfo GetDirectoryOfPathAbove(string relativePath)

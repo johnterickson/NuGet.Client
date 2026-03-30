@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -38,10 +40,6 @@ namespace NuGet.Packaging.Rules
         // NOTE: We generate many different messages here, so we avoid using MessageFormat itself.
         public string MessageFormat => "";
 
-        public InvalidUndottedFrameworkRule()
-        {
-        }
-
         public IEnumerable<PackagingLogMessage> Validate(PackageArchiveReader builder)
         {
             return Validate(LoadXml(builder.GetNuspec()), builder.GetFiles());
@@ -54,7 +52,7 @@ namespace NuGet.Packaging.Rules
             // the frameworks themselves. That does end up with a bit of
             // duplicate code, but the alternative is to expand the scope of
             // NuspecReader by a lot.
-            var metadataNode = xml.Root.Elements().Where(e => StringComparer.Ordinal.Equals(e.Name.LocalName, Metadata)).FirstOrDefault();
+            var metadataNode = xml.Root.Elements().FirstOrDefault(e => StringComparer.Ordinal.Equals(e.Name.LocalName, Metadata));
             if (metadataNode == null)
             {
                 throw new PackagingException(string.Format(

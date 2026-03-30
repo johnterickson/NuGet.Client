@@ -1,10 +1,11 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -341,22 +342,6 @@ namespace NuGet.VisualStudio
             await NuGetUIThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
             return await IsWebProjectAsync(envDTEProject) ? WebConfig : AppConfig;
-        }
-
-        private class PathComparer : IEqualityComparer<string>
-        {
-            public static readonly PathComparer Default = new PathComparer();
-
-            public bool Equals(string x, string y)
-            {
-                return Path.GetFileName(x).Equals(Path.GetFileName(y), StringComparison.OrdinalIgnoreCase);
-            }
-
-            [SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Existing behavior.")]
-            public int GetHashCode(string obj)
-            {
-                return Path.GetFileName(obj).ToLowerInvariant().GetHashCode();
-            }
         }
 
         /// <summary>

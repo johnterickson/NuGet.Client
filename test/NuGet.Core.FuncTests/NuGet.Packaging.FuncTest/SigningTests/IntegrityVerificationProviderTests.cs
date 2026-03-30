@@ -1,7 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#if IS_SIGNING_SUPPORTED
+
+#nullable disable
 
 using System;
 using System.Collections.Generic;
@@ -228,7 +229,7 @@ namespace NuGet.Packaging.FuncTest
                 using (var zip = new ZipArchive(stream, ZipArchiveMode.Update))
                 using (var entryStream = zip.Entries.First().Open())
                 {
-                    entryStream.SetLength(entryStream.Length - 1);
+                    entryStream.SetLength(entryStream.Length + 1);
                 }
 
                 var verifier = new PackageSignatureVerifier(_trustProviders);
@@ -411,4 +412,3 @@ namespace NuGet.Packaging.FuncTest
         }
     }
 }
-#endif

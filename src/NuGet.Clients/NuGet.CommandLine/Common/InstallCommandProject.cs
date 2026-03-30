@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -101,7 +103,7 @@ namespace NuGet.CommandLine
             CancellationToken token)
         {
             var installedPackagesList = await GetInstalledPackagesAsync(token);
-            var packageReference = installedPackagesList.Where(p => p.PackageIdentity.Equals(packageIdentity)).FirstOrDefault();
+            var packageReference = installedPackagesList.FirstOrDefault(p => p.PackageIdentity.Equals(packageIdentity));
             if (packageReference == null)
             {
                 // Package does not exist

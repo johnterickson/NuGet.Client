@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +11,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using NuGet.Common;
 using NuGet.Protocol.Core.Types;
 using NuGet.Test.Utility;
@@ -515,6 +518,7 @@ namespace NuGet.Protocol.Tests
                     noServiceEndpoint: false,
                     skipDuplicate: false,
                     symbolPackageUpdateResource: null,
+                    allowInsecureConnections: true,
                     log: NullLogger.Instance);
 
                 // Assert
@@ -836,7 +840,7 @@ namespace NuGet.Protocol.Tests
         [Theory]
         [InlineData(true, false)]
         [InlineData(false, true)]
-        public async Task Push_WithAnHttpSourceAndAllowInsecureConnections_NupkgOnly_Warns(bool allowInsecureConnections, bool isHttpWarningExpected)
+        public async Task Push_WithAnHttpSourceAndAllowInsecureConnections_NupkgOnly_Errors(bool allowInsecureConnections, bool isErrorExpected)
         {
             // Arrange
             using var workingDir = TestDirectory.Create();
@@ -873,14 +877,14 @@ namespace NuGet.Protocol.Tests
                 log: logger);
 
             // Assert
-            Assert.NotNull(sourceRequest);
-            if (isHttpWarningExpected)
+            if (isErrorExpected)
             {
-                Assert.Equal(1, logger.WarningMessages.Count);
-                Assert.Contains("You are running the 'push' operation with an 'HTTP' source", logger.WarningMessages.Single());
+                Assert.Equal(1, logger.ErrorMessages.Count);
+                logger.ErrorMessages.Should().Contain(string.Format(Strings.Error_HttpServerUsage, "push", source));
             }
             else
             {
+                Assert.NotNull(sourceRequest);
                 Assert.Equal(0, logger.WarningMessages.Count);
             }
 
@@ -889,7 +893,7 @@ namespace NuGet.Protocol.Tests
         [Theory]
         [InlineData(true, false)]
         [InlineData(false, true)]
-        public async Task Push_WhenPushingToAnHttpSymbolSourceAndAllowInsecureConnections_Warns(bool allowInsecureConnections, bool isHttpWarningExpected)
+        public async Task Push_WhenPushingToAnHttpSymbolSourceAndAllowInsecureConnections_logsError(bool allowInsecureConnections, bool isErrorExpected)
         {
             // Arrange
             using var workingDir = TestDirectory.Create();
@@ -941,15 +945,15 @@ namespace NuGet.Protocol.Tests
                 log: logger);
 
             // Assert
-            Assert.NotNull(sourceRequest);
-            Assert.NotNull(symbolRequest);
-            if (isHttpWarningExpected)
+            if (isErrorExpected)
             {
-                Assert.Equal(1, logger.WarningMessages.Count);
-                Assert.Contains("You are running the 'push' operation with an 'HTTP' source", logger.WarningMessages.Single());
+                Assert.Equal(1, logger.ErrorMessages.Count);
+                logger.ErrorMessages.Should().Contain(string.Format(Strings.Error_HttpServerUsage, "push", "http://other.smbsrc.net/api/v2/package/"));
             }
             else
             {
+                Assert.NotNull(sourceRequest);
+                Assert.NotNull(symbolRequest);
                 Assert.Equal(0, logger.WarningMessages.Count);
             }
         }
@@ -957,7 +961,7 @@ namespace NuGet.Protocol.Tests
         [Theory]
         [InlineData(true, false)]
         [InlineData(false, true)]
-        public async Task Push_WhenPushingToAnHttpSourceAndSymbolSourceWithAllowInsecureConnections_WarnsForBoth(bool allowInsecureConnections, bool isHttpWarningExpected)
+        public async Task Push_WhenPushingToAnHttpSourceAndSymbolSourceWithAllowInsecureConnections_ErrorsForOne(bool allowInsecureConnections, bool isErrorExpected)
         {
             // Arrange
             using var workingDir = TestDirectory.Create();
@@ -1009,27 +1013,26 @@ namespace NuGet.Protocol.Tests
                 log: logger);
 
             // Assert
-            Assert.NotNull(sourceRequest);
-            Assert.NotNull(symbolRequest);
-            if (isHttpWarningExpected)
+            if (isErrorExpected)
             {
-                Assert.Equal(2, logger.WarningMessages.Count);
-                Assert.Contains("You are running the 'push' operation with an 'HTTP' source, 'http://www.nuget.org/api/v2/'. Non-HTTPS access will be removed in a future version. Consider migrating to an 'HTTPS' source.", logger.WarningMessages.First());
-                Assert.Contains("You are running the 'push' operation with an 'HTTP' source, 'http://other.smbsrc.net/api/v2/package/'. Non-HTTPS access will be removed in a future version. Consider migrating to an 'HTTPS' source.", logger.WarningMessages.Last());
+                Assert.Equal(1, logger.ErrorMessages.Count);
+                logger.ErrorMessages.Should().Contain(string.Format(Strings.Error_HttpServerUsage, "push", source));
             }
             else
             {
+                Assert.NotNull(sourceRequest);
+                Assert.NotNull(symbolRequest);
                 Assert.Equal(0, logger.WarningMessages.Count);
             }
         }
 
         [Fact]
-        public async Task Delete_WhenDeletingFromHTTPSource_Warns()
+        public async Task Delete_WhenDeletingFromHTTPSource_LogsAnError()
         {
             // Arrange
             using (var workingDir = TestDirectory.Create())
             {
-                var source = "http://www.nuget.org/api/v2";
+                var source = "http://www.nuget.org/api/v2/";
                 HttpRequestMessage actualRequest = null;
                 var responses = new Dictionary<string, Func<HttpRequestMessage, Task<HttpResponseMessage>>>
                 {
@@ -1058,10 +1061,8 @@ namespace NuGet.Protocol.Tests
                     log: logger);
 
                 // Assert
-                Assert.NotNull(actualRequest);
-                Assert.Equal(HttpMethod.Delete, actualRequest.Method);
-                Assert.Equal(3, logger.WarningMessages.Count);
-                Assert.Contains("You are running the 'delete' operation with an 'HTTP' source, 'http://www.nuget.org/api/v2/'. Non-HTTPS access will be removed in a future version. Consider migrating to an 'HTTPS' source.", logger.WarningMessages.Last());
+                Assert.Equal(1, logger.Errors);
+                logger.ErrorMessages.Should().Contain(string.Format(Strings.Error_HttpServerUsage, "delete", source));
             }
         }
     }

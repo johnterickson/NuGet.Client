@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -77,14 +79,6 @@ namespace NuGet.Build.Tasks
             dgFile.Save(fileInfo.FullName);
 
             return true;
-        }
-
-        /// <summary>
-        /// Convert empty strings to null
-        /// </summary>
-        private static string GetNullForEmpty(string s)
-        {
-            return string.IsNullOrEmpty(s) ? null : s;
         }
 
         private static MSBuildTaskItem GetMSBuildItem(ITaskItem item)

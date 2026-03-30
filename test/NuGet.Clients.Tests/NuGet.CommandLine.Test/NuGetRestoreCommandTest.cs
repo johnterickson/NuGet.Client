@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -484,7 +486,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
         [Theory]
         [InlineData("", "")]
         [InlineData("", "packages.config")]
-        [InlineData("project.json", "")]
+        [InlineData("PackageReference", "")]
         public void RestoreCommand_FromSolutionFile_ReportsNothingToDoWithoutError(string proj1ConfigFileName, string proj2ConfigFileName)
         {
             // Verify we display a simple informational message if we don't encounter any projects with project.json
@@ -505,7 +507,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 
                 // Assert
                 Assert.True(_successCode == r.ExitCode, r.Output + "" + r.Errors);
-                Assert.True(string.IsNullOrEmpty(r.Errors)); // No error
+                Assert.Empty(r.Errors); // No error
 
                 if (string.IsNullOrEmpty(proj1ConfigFileName) && string.IsNullOrEmpty(proj2ConfigFileName))
                 {
@@ -1270,7 +1272,7 @@ EndProject");
         }
 
         [Fact]
-        public void RestoreCommand_FromProjectJson_RelativeGlobalPackagesFolder()
+        public async Task RestoreCommand_WithPackageReference_RelativeGlobalPackagesFolder()
         {
             // Arrange
             var nugetexe = Util.GetNuGetExePath();
@@ -1286,21 +1288,16 @@ EndProject");
                 Directory.CreateDirectory(repositoryPath);
                 Directory.CreateDirectory(Path.Combine(workingPath, ".nuget"));
 
-                Util.CreateTestPackage("packageA", "1.1.0", repositoryPath);
-                Util.CreateTestPackage("packageB", "2.2.0", repositoryPath);
+                var packageA = new SimpleTestPackageContext("packageA", "1.1.0");
+                var packageB = new SimpleTestPackageContext("packageB", "2.2.0");
 
+                await SimpleTestPackageUtility.CreatePackagesAsync(repositoryPath, packageA, packageB);
+                var project = SimpleTestProjectContext.CreateLegacyPackageReference("projectName", workingPath, FrameworkConstants.CommonFrameworks.Net472);
+                project.AddPackageToAllFrameworks(packageA);
+                project.AddPackageToAllFrameworks(packageB);
+                project.Save();
 
-                var projectJson = @"{
-                    ""dependencies"": {
-                    ""packageA"": ""1.1.0"",
-                    ""packageB"": ""2.2.0""
-                    },
-                    ""frameworks"": {
-                                ""netcore50"": { }
-                            }
-                }";
-
-                var projectFile = Util.CreateUAPProject(workingPath, projectJson);
+                var projectFile = project.ProjectPath;
 
                 var nugetConfigDir = Path.Combine(workingPath, ".nuget");
 
@@ -1957,10 +1954,10 @@ EndProject";
 
         /// <summary>
         /// Test proper handling of project in parent directories. The solution A\A.sln contains A\A.Util\A.Util.csproj
-        /// and B\B.csproj. B.csproj depends on ..\A\A.Util\A.Util.csproj.
+        /// and projectB\projectB.csproj. projectB.csproj depends on ..\A\A.Util\A.Util.csproj.
         /// </summary>
         [Fact]
-        public void RestoreCommand_FromSolutionFile_ProjectsInParentDir()
+        public async Task RestoreCommand_FromSolutionFile_ProjectsInParentDir()
         {
             // Arrange
             var nugetexe = Util.GetNuGetExePath();
@@ -1970,80 +1967,30 @@ EndProject";
                 var basePath = pathContext.WorkingDirectory;
                 Directory.CreateDirectory(Path.Combine(basePath, "A"));
                 Directory.CreateDirectory(Path.Combine(basePath, "A", "A.Util"));
-                Directory.CreateDirectory(Path.Combine(basePath, "B"));
+                Directory.CreateDirectory(Path.Combine(basePath, "projectB"));
 
                 var repositoryPath = Path.Combine(basePath, "Repository");
 
                 Directory.CreateDirectory(repositoryPath);
 
-                Util.CreateTestPackage("packageA", "1.1.0", repositoryPath);
-                Util.CreateTestPackage("packageB", "2.2.0", repositoryPath);
+                var packageA = new SimpleTestPackageContext("packageA", "1.1.0");
+                var packageB = new SimpleTestPackageContext("packageB", "2.2.0");
 
-                Util.CreateFile(Path.Combine(basePath, "A", "A.Util"), "A.Util.csproj",
-@"<Project ToolsVersion='14.0' DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
-  <Import Project=""$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"" Condition=""Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')"" />
-  <PropertyGroup>
-    <OutputType>Library</OutputType>
-    <OutputPath>out</OutputPath>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Include='project.json' />
-  </ItemGroup>
-  <Import Project=""$(MSBuildToolsPath)\Microsoft.CSharp.targets"" />
-</Project>");
+                await SimpleTestPackageUtility.CreateFolderFeedV3Async(repositoryPath, packageA, packageB);
 
-                Util.CreateFile(Path.Combine(basePath, "A", "A.Util"), "project.json",
-@"{
-  ""dependencies"": {
-    ""packageA"": ""1.1.0"",
-    ""packageB"": ""2.2.0""
-  },
-  ""frameworks"": {
-                ""netcore50"": { }
-            }
-}");
-                Util.CreateFile(Path.Combine(basePath, "B"), "B.csproj",
-@"<Project ToolsVersion='14.0' DefaultTargets='Build' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>
-  <Import Project=""$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"" Condition=""Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')"" />
-  <PropertyGroup>
-    <OutputType>Library</OutputType>
-    <OutputPath>out</OutputPath>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include=""..\A\A.Util\A.Util.csproj"">
-      <Project>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</Project>
-      <Name>A.Util</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include='project.json' />
-  </ItemGroup>
-  <Import Project=""$(MSBuildToolsPath)\Microsoft.CSharp.targets"" />
-</Project>");
+                var projectAUtil = SimpleTestProjectContext.CreateLegacyPackageReference("A.Util", Path.Combine(basePath, "A"), FrameworkConstants.CommonFrameworks.Net472);
+                projectAUtil.AddPackageToAllFrameworks(packageA);
+                projectAUtil.AddPackageToAllFrameworks(packageB);
 
-                Util.CreateFile(Path.Combine(basePath, "B"), "project.json",
-@"{
-  ""dependencies"": {
-  },
-  ""frameworks"": {
-                ""netcore50"": { }
-            }
-}");
+                var projectB = SimpleTestProjectContext.CreateLegacyPackageReference("projectB", basePath, FrameworkConstants.CommonFrameworks.Net472);
+                projectB.AddProjectToAllFrameworks(projectAUtil);
 
-                Util.CreateFile(Path.Combine(basePath, "A"), "A.sln",
-                    @"
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
-Project(""{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}"") = ""A.Util"", ""A.Util\A.Util.csproj"", ""{A04C59CC-7622-4223-B16B-CDF2ECAD438D}""
-EndProject
-Project(""{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}"") = ""B"", ""..\B\B.csproj"", ""{42641DAE-D6C4-49D4-92EA-749D2573554A}""
-EndProject");
+                var solution = new SimpleTestSolutionContext(Path.Combine(basePath, "A"), projectAUtil, projectB);
+                solution.Create();
 
                 var args = new[] {
                     "restore",
-                    Path.Combine(basePath, "A", "A.sln"),
+                    solution.SolutionPath,
                     "-verbosity detailed",
                     "-Source", repositoryPath
                 };
@@ -2056,7 +2003,7 @@ EndProject");
 
                 // Assert
                 Assert.True(_successCode == r.ExitCode, r.Output + " " + r.Errors);
-                var bProjectLockJsonFile = Path.Combine(basePath, "B", "project.lock.json");
+                var bProjectLockJsonFile = Path.Combine(basePath, "projectB", "obj", LockFileFormat.AssetsFileName);
                 Assert.True(File.Exists(bProjectLockJsonFile));
                 var bProjectLockJson = new LockFileFormat().Read(bProjectLockJsonFile);
                 var bLibraries = bProjectLockJson.Libraries;
@@ -3365,7 +3312,7 @@ EndProject";
                 pathContext.SolutionRoot);
 
             solution.Projects.Add(projectA);
-            solution.Create(pathContext.SolutionRoot);
+            solution.Create();
 
             Util.CreateFile(Path.GetDirectoryName(projectA.ProjectPath), "packages.config",
 @"<packages>
@@ -3419,7 +3366,7 @@ EndProject";
             projectA.Properties.Add("NuGetAudit", "false");
 
             solution.Projects.Add(projectA);
-            solution.Create(pathContext.SolutionRoot);
+            solution.Create();
 
             Util.CreateFile(Path.GetDirectoryName(projectA.ProjectPath), "packages.config",
 @"<packages>
@@ -3474,7 +3421,7 @@ EndProject";
             projectA.Properties.Add("NuGetAuditLevel", "critical");
 
             solution.Projects.Add(projectA);
-            solution.Create(pathContext.SolutionRoot);
+            solution.Create();
 
             Util.CreateFile(Path.GetDirectoryName(projectA.ProjectPath), "packages.config",
 @"<packages>
@@ -3531,14 +3478,14 @@ EndProject";
             projectA.Properties.Add("NuGetAuditLevel", "critical");
 
             var projectB = new SimpleTestProjectContext(
-                "B",
+                "projectB",
                 ProjectStyle.PackagesConfig,
                 pathContext.SolutionRoot);
             projectB.Properties.Add("NuGetAuditLevel", "high");
 
             solution.Projects.Add(projectA);
             solution.Projects.Add(projectB);
-            solution.Create(pathContext.SolutionRoot);
+            solution.Create();
 
             Util.CreateFile(Path.GetDirectoryName(projectA.ProjectPath), "packages.config",
 @"<packages>
@@ -3612,7 +3559,7 @@ EndProject";
 
             solution.Projects.Add(projectA);
             solution.Projects.Add(projectB);
-            solution.Create(pathContext.SolutionRoot);
+            solution.Create();
 
             Util.CreateFile(Path.GetDirectoryName(projectA.ProjectPath), "packages.config",
 @"<packages>
@@ -3686,7 +3633,7 @@ EndProject";
 
             solution.Projects.Add(projectA);
             solution.Projects.Add(projectB);
-            solution.Create(pathContext.SolutionRoot);
+            solution.Create();
 
             Util.CreateFile(Path.GetDirectoryName(projectA.ProjectPath), "packages.config",
 @"<packages>
@@ -3711,7 +3658,7 @@ EndProject";
                                 attributes: new Dictionary<string, string>());
             xmlA.Save(projectA.ProjectPath);
 
-            // suppress the vulnerability on package B for project B
+            // suppress the vulnerability on package projectB for project projectB
             var xmlB = projectB.GetXML();
             ProjectFileUtils.AddItem(
                                 xmlB,
@@ -3738,6 +3685,66 @@ EndProject";
             r.AllOutput.Should().Contain($"Package 'packageB' 2.1.0 has a known critical severity vulnerability");
             r.AllOutput.Should().Contain($"Package 'packageA' 1.2.0 has a known high severity vulnerability");
             r.AllOutput.Should().NotContain($"Package 'packageB' 2.2.0 has a known critical severity vulnerability"); // suppressed
+        }
+
+        [SkipMono()]
+        public void RestoreCommand_WithAuditSource_AndPackageWithVulnerabilities_RaisesWarnings()
+        {
+            Command_WithAuditSource_AndPackageWithVulnerabilities_RaisesWarnings("restore");
+        }
+
+        internal static void Command_WithAuditSource_AndPackageWithVulnerabilities_RaisesWarnings(string command)
+        {
+            // Arrange
+            var nugetexe = Util.GetNuGetExePath();
+            using var pathContext = new SimpleTestPathContext();
+            // Very important that the mock server is using a different folder than the package source
+            using var mockServer = new FileSystemBackedV3MockServer(pathContext.PackagesV2, sourceReportsVulnerabilities: true);
+
+            mockServer.Vulnerabilities.Add(
+                "packageA",
+                new List<(Uri, PackageVulnerabilitySeverity, VersionRange)> {
+            (new Uri("https://contoso.com/advisories/12345"), PackageVulnerabilitySeverity.High, VersionRange.Parse("[1.0.0, 2.0.0)"))
+                });
+
+            pathContext.Settings.AddAuditSource("source", mockServer.ServiceIndexUri, allowInsecureConnectionsValue: "True");
+
+            Util.CreateTestPackage("packageA", "1.1.0", pathContext.PackageSource);
+            Util.CreateTestPackage("packageB", "2.2.0", pathContext.PackageSource);
+
+            var solution = new SimpleTestSolutionContext(pathContext.SolutionRoot);
+            var projectA = new SimpleTestProjectContext(
+                "a",
+                ProjectStyle.PackagesConfig,
+                pathContext.SolutionRoot);
+
+            solution.Projects.Add(projectA);
+            solution.Create();
+
+            Util.CreateFile(Path.GetDirectoryName(projectA.ProjectPath), "packages.config",
+@"<packages>
+  <package id=""packageA"" version=""1.1.0"" />
+  <package id=""packageB"" version=""2.2.0"" />
+</packages>");
+
+            mockServer.Start();
+
+            var installDirectory = Path.Combine(pathContext.WorkingDirectory, "install_output");
+
+            // Act
+            var r = CommandRunner.Run(
+                nugetexe,
+                pathContext.WorkingDirectory,
+                $"{command} {Path.Combine(Path.GetDirectoryName(projectA.ProjectPath), "packages.config")} -OutputDirectory {installDirectory}");
+
+            mockServer.Stop();
+
+            // Assert
+            r.Success.Should().BeTrue(because: r.AllOutput);
+            var installedPackage = Path.Combine(installDirectory, "packageA.1.1.0", "packageA.1.1.0.nupkg");
+            File.Exists(installedPackage).Should().BeTrue();
+            r.AllOutput.Should().Contain("Package 'packageA' 1.1.0 has a known high severity vulnerability");
+            r.AllOutput.Should().NotContain("Package 'packageB' 2.2.0 has a known high severity vulnerability");
         }
 
         private static byte[] GetResource(string name)

@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -69,12 +71,6 @@ namespace NuGet.RuntimeModel
             return string.Equals(other.RuntimeIdentifier, RuntimeIdentifier, StringComparison.Ordinal)
                 && InheritedRuntimes.OrderedEquals(other.InheritedRuntimes, s => s, StringComparer.Ordinal, StringComparer.Ordinal)
                 && RuntimeDependencySets.OrderedEquals(other.RuntimeDependencySets, p => p.Key, StringComparer.OrdinalIgnoreCase);
-        }
-
-        [Obsolete("This type is immutable, so there is no need or point to clone it.")]
-        public RuntimeDescription Clone()
-        {
-            return this;
         }
 
         /// <summary>

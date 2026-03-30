@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -17,12 +19,6 @@ namespace NuGet.Protocol
     {
         private readonly FindLocalPackagesResource _localResource;
         private readonly string _source;
-
-        [Obsolete("Use constructor with source parameter")]
-        public LocalDownloadResource(FindLocalPackagesResource localResource)
-            : this(source: null, localResource)
-        {
-        }
 
         public LocalDownloadResource(string source, FindLocalPackagesResource localResource)
         {

@@ -1,10 +1,13 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using NuGet.Common;
@@ -23,17 +26,6 @@ namespace NuGet.Protocol.Plugins
         private IEnumerable<PluginDiscoveryResult> _results;
         private readonly SemaphoreSlim _semaphore;
         private readonly IEnvironmentVariableReader _environmentVariableReader;
-        private static bool IsDesktop
-        {
-            get
-            {
-#if IS_DESKTOP
-                return true;
-#else
-                return false;
-#endif
-            }
-        }
 
         public PluginDiscoverer()
             : this(EnvironmentVariableWrapper.Instance)
@@ -179,7 +171,7 @@ namespace NuGet.Protocol.Plugins
                     {
                         return PluginFileState.InvalidFilePath;
                     }
-                }), requiresDotnetHost: !IsDesktop);
+                }));
                 files.Add(pluginFile);
             }
 
@@ -194,7 +186,7 @@ namespace NuGet.Protocol.Plugins
         internal List<PluginFile> GetPluginsInNuGetPluginPaths()
         {
             var pluginFiles = new List<PluginFile>();
-            string[] paths = _nuGetPluginPaths?.Split(Path.PathSeparator) ?? Array.Empty<string>();
+            string[] paths = _nuGetPluginPaths?.Split([Path.PathSeparator], StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
 
             foreach (var path in paths)
             {
@@ -203,30 +195,32 @@ namespace NuGet.Protocol.Plugins
                     if (File.Exists(path))
                     {
                         FileInfo fileInfo = new FileInfo(path);
-                        if (fileInfo.Name.StartsWith("nuget-plugin-", StringComparison.CurrentCultureIgnoreCase))
+                        if (IsValidPluginFile(fileInfo))
                         {
                             // A DotNet tool plugin
-                            if (IsValidPluginFile(fileInfo))
-                            {
-                                PluginFile pluginFile = new PluginFile(fileInfo.FullName, new Lazy<PluginFileState>(() => PluginFileState.Valid), requiresDotnetHost: false);
-                                pluginFiles.Add(pluginFile);
-                            }
+                            PluginFile pluginFile = new PluginFile(fileInfo.FullName, new Lazy<PluginFileState>(() => PluginFileState.Valid), requiresDotnetHost: false);
+                            pluginFiles.Add(pluginFile);
                         }
                         else
                         {
                             // A non DotNet tool plugin file
                             var state = new Lazy<PluginFileState>(() => PluginFileState.Valid);
-                            pluginFiles.Add(new PluginFile(fileInfo.FullName, state, requiresDotnetHost: !IsDesktop));
+                            pluginFiles.Add(new PluginFile(fileInfo.FullName, state));
                         }
                     }
                     else if (Directory.Exists(path))
                     {
-                        pluginFiles.AddRange(GetNetToolsPluginsInDirectory(path) ?? new List<PluginFile>());
+                        List<PluginFile> plugins = GetNetToolsPluginsInDirectory(path);
+
+                        if (plugins != null)
+                        {
+                            pluginFiles.AddRange(plugins);
+                        }
                     }
                 }
                 else
                 {
-                    pluginFiles.Add(new PluginFile(path, new Lazy<PluginFileState>(() => PluginFileState.InvalidFilePath), requiresDotnetHost: !IsDesktop));
+                    pluginFiles.Add(new PluginFile(path, new Lazy<PluginFileState>(() => PluginFileState.InvalidFilePath)));
                 }
             }
 
@@ -247,7 +241,12 @@ namespace NuGet.Protocol.Plugins
             {
                 if (PathValidator.IsValidLocalPath(path) || PathValidator.IsValidUncPath(path))
                 {
-                    pluginFiles.AddRange(GetNetToolsPluginsInDirectory(path) ?? new List<PluginFile>());
+                    List<PluginFile> plugins = GetNetToolsPluginsInDirectory(path);
+
+                    if (plugins != null)
+                    {
+                        pluginFiles.AddRange(plugins);
+                    }
                 }
             }
 
@@ -256,9 +255,14 @@ namespace NuGet.Protocol.Plugins
 
         private static List<PluginFile> GetNetToolsPluginsInDirectory(string directoryPath)
         {
-            var pluginFiles = new List<PluginFile>();
+            List<PluginFile> pluginFiles = null;
 
-            if (Directory.Exists(directoryPath))
+            if (!Directory.Exists(directoryPath))
+            {
+                return pluginFiles;
+            }
+
+            try
             {
                 var directoryInfo = new DirectoryInfo(directoryPath);
                 var files = directoryInfo.GetFiles("nuget-plugin-*");
@@ -268,10 +272,16 @@ namespace NuGet.Protocol.Plugins
                     if (IsValidPluginFile(file))
                     {
                         PluginFile pluginFile = new PluginFile(file.FullName, new Lazy<PluginFileState>(() => PluginFileState.Valid), requiresDotnetHost: false);
+                        pluginFiles ??= [];
                         pluginFiles.Add(pluginFile);
                     }
                 }
             }
+            catch (UnauthorizedAccessException) { }
+            catch (SecurityException) { }
+            catch (PathTooLongException) { }
+            catch (DirectoryNotFoundException) { }
+            catch (DriveNotFoundException) { }
 
             return pluginFiles;
         }
@@ -285,6 +295,11 @@ namespace NuGet.Protocol.Plugins
         /// <returns></returns>
         internal static bool IsValidPluginFile(FileInfo fileInfo)
         {
+            if (!fileInfo.Name.StartsWith("nuget-plugin-", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return fileInfo.Extension.Equals(".exe", StringComparison.OrdinalIgnoreCase) ||

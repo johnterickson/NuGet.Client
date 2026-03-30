@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -42,7 +44,7 @@ namespace NuGet.Build.Tasks.Console.Test
             if (enabled.HasValue)
             {
                 options.Add(nameof(RestoreTaskEx.EnableBinaryLogger), enabled.ToString());
-            };
+            }
 
             if (parameters != null)
             {
@@ -776,10 +778,8 @@ namespace NuGet.Build.Tasks.Console.Test
         [Theory]
         [InlineData(true, ProjectStyle.PackageReference)]
         [InlineData(false, ProjectStyle.DotnetCliTool)]
-        [InlineData(false, ProjectStyle.DotnetToolReference)]
         [InlineData(false, ProjectStyle.PackagesConfig)]
         [InlineData(false, ProjectStyle.ProjectJson)]
-        [InlineData(false, ProjectStyle.Standalone)]
         [InlineData(false, ProjectStyle.Unknown)]
         public void IsCentralVersionsManagementEnabled_OnlyPackageReferenceWithProjectCPVMEnabledProperty(bool expected, ProjectStyle projectStyle)
         {
@@ -924,7 +924,7 @@ namespace NuGet.Build.Tasks.Console.Test
                     }),
             };
 
-            var targetFrameworkInfos = MSBuildStaticGraphRestore.GetTargetFrameworkInfos(innerNodes, isCpvmEnabled: true);
+            var targetFrameworkInfos = MSBuildStaticGraphRestore.GetTargetFrameworkInfos(innerNodes, isCpvmEnabled: true, isPruningEnabledGlobally: false);
 
             // Assert
             Assert.Equal(4, targetFrameworkInfos.Count);
@@ -1002,7 +1002,8 @@ namespace NuGet.Build.Tasks.Console.Test
                     new Dictionary<string, IMSBuildProject>() {
                         { string.Empty, project }
                     },
-                    isCpvmEnabled: false);
+                    isCpvmEnabled: false,
+                    isPruningEnabledGlobally: false);
 
             // Assert
             targetFrameworkInfos.Should().HaveCount(1);
@@ -1071,7 +1072,7 @@ namespace NuGet.Build.Tasks.Console.Test
             };
 
             // Act
-            List<TargetFrameworkInformation> targetFrameworkInfos = MSBuildStaticGraphRestore.GetTargetFrameworkInfos(innerNodes, isCpvmEnabled: false);
+            List<TargetFrameworkInformation> targetFrameworkInfos = MSBuildStaticGraphRestore.GetTargetFrameworkInfos(innerNodes, isCpvmEnabled: false, isPruningEnabledGlobally: false);
 
             // Assert
             targetFrameworkInfos.Should().HaveCount(2);
@@ -1158,7 +1159,7 @@ namespace NuGet.Build.Tasks.Console.Test
                     })
             };
 
-            var targetFrameworkInfos = MSBuildStaticGraphRestore.GetTargetFrameworkInfos(innerNodes, isCpvmEnabled: false);
+            var targetFrameworkInfos = MSBuildStaticGraphRestore.GetTargetFrameworkInfos(innerNodes, isCpvmEnabled: false, isPruningEnabledGlobally: false);
 
             // Assert
             targetFrameworkInfos.Should().HaveCount(3);
@@ -1212,7 +1213,7 @@ namespace NuGet.Build.Tasks.Console.Test
                     })
             };
             // Act & Assert
-            var exception = Assert.Throws<ArgumentException>(() => MSBuildStaticGraphRestore.GetTargetFrameworkInfos(innerNodes, isCpvmEnabled: false));
+            var exception = Assert.Throws<ArgumentException>(() => MSBuildStaticGraphRestore.GetTargetFrameworkInfos(innerNodes, isCpvmEnabled: false, isPruningEnabledGlobally: false));
             exception.Message.Should().Contain("PrunePackageReference");
         }
 
@@ -1263,7 +1264,7 @@ namespace NuGet.Build.Tasks.Console.Test
                     })
             };
 
-            var targetFrameworkInfos = MSBuildStaticGraphRestore.GetTargetFrameworkInfos(innerNodes, isCpvmEnabled: false);
+            var targetFrameworkInfos = MSBuildStaticGraphRestore.GetTargetFrameworkInfos(innerNodes, isCpvmEnabled: false, isPruningEnabledGlobally: false);
 
             // Assert
             targetFrameworkInfos.Should().HaveCount(2);
@@ -1284,6 +1285,77 @@ namespace NuGet.Build.Tasks.Console.Test
             net471PackagesToPrune[0].Key.Should().Be("x");
             net471PackagesToPrune[0].Value.Name.Should().Be("x");
             net471PackagesToPrune[0].Value.VersionRange.Should().Be(VersionRange.Parse("(, 1.0.0]"));
+        }
+
+        [Theory]
+        [InlineData("true", "false", "false", true)]
+        [InlineData("true", "", "false", true)]
+        [InlineData("", "", "false", false)]
+        public void GetPackagePruningDefault(string firstDefault, string secondDefault, string thirdDefault, bool expected)
+        {
+            // Arrange
+            string net471 = "net471";
+            string net472 = "net472";
+            string net47 = "net47";
+
+            var innerNodes = new Dictionary<string, IMSBuildProject>
+            {
+                [net472] = new MockMSBuildProject("Project",
+                    new Dictionary<string, string>
+                    {
+                        { "ManagePackageVersionsCentrally", "true"},
+                        { "TargetFramework", "net472" },
+                        { "TargetFrameworkIdentifier", ".NETFramework" },
+                        { "TargetFrameworkVersion", "v4.7.2" },
+                        { "TargetFrameworkMoniker", ".NETFramework,Version=v4.7.2" },
+                        { "RestorePackagePruningDefault", firstDefault },
+                    },
+                    new Dictionary<string, IList<IMSBuildItem>>
+                    {
+                        ["PrunePackageReference"] = new List<IMSBuildItem>
+                        {
+                            new MSBuildItem("x", new Dictionary<string, string> { ["Version"] = "1.0.0"}),
+                            new MSBuildItem("y", new Dictionary<string, string> { ["Version"] = "5.0.0"}),
+                        }
+                    }),
+                [net471] = new MockMSBuildProject("Project",
+                    new Dictionary<string, string>
+                    {
+                        { "TargetFramework", "net471" },
+                        { "TargetFrameworkIdentifier", ".NETFramework" },
+                        { "TargetFrameworkVersion", "v4.7.1" },
+                        { "TargetFrameworkMoniker", ".NETFramework,Version=v4.7.1" },
+                        { "RestorePackagePruningDefault", secondDefault },
+                    },
+                    new Dictionary<string, IList<IMSBuildItem>>
+                    {
+                        ["PrunePackageReference"] = new List<IMSBuildItem>
+                        {
+                            new MSBuildItem("x", new Dictionary<string, string> { ["Version"] = "1.0.0"}),
+                        }
+                    }),
+                [net47] = new MockMSBuildProject("Project",
+                    new Dictionary<string, string>
+                    {
+                        { "TargetFramework", "net47" },
+                        { "TargetFrameworkIdentifier", ".NETFramework" },
+                        { "TargetFrameworkVersion", "v4.7.0" },
+                        { "TargetFrameworkMoniker", ".NETFramework,Version=v4.7.0" },
+                        { "RestorePackagePruningDefault", thirdDefault },
+                    },
+                    new Dictionary<string, IList<IMSBuildItem>>
+                    {
+                        ["PrunePackageReference"] = new List<IMSBuildItem>
+                        {
+                            new MSBuildItem("x", new Dictionary<string, string> { ["Version"] = "1.0.0"}),
+                        }
+                    })
+            };
+
+            var result = MSBuildStaticGraphRestore.GetPackagePruningDefault(innerNodes.Values);
+
+            // Assert
+            result.Should().Be(expected);
         }
     }
 }

@@ -1,8 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#nullable enable
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +11,8 @@ namespace NuGet.Configuration
     {
         /// <summary>
         /// Max allowed length for package Id.
-        /// In case update this value please update in src\NuGet.Core\NuGet.Packaging\PackageCreation\Utility\PackageIdValidator.cs too.
+        /// In case update this value please update in src\NuGet.Core\NuGet.Packaging\PackageCreation\Utility\PackageIdValidator.cs
+        /// and the registration.json for the Package Source Mapping Unified Settings page.
         /// </summary>
         internal static int PackageIdMaxLength { get; } = 100;
 

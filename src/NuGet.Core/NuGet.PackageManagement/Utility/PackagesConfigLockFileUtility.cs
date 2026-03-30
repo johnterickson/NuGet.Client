@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -99,7 +101,7 @@ namespace NuGet.PackageManagement.Utility
             {
                 var message = string.Format(CultureInfo.CurrentCulture, Strings.Error_InvalidLockFileInput, lockFilePath);
                 var errors = new List<IRestoreLogMessage>();
-                var log = RestoreLogMessage.CreateError(NuGetLogCode.NU1005, message, packagesConfigFile);
+                var log = RestoreLogMessage.CreateError(NuGetLogCode.NU1005, message);
                 log.ProjectPath = projectFile ?? packagesConfigFile;
                 errors.Add(log);
                 return errors;
@@ -135,7 +137,7 @@ namespace NuGet.PackageManagement.Utility
                             foreach (var difference in comparisonResult.MatchedDependencies.Where(kvp => kvp.Key.ContentHash != kvp.Value.ContentHash))
                             {
                                 var message = string.Format(CultureInfo.CurrentCulture, Strings.Error_PackageValidationFailed, difference.Key.Id + "." + difference.Key.ResolvedVersion);
-                                var log = RestoreLogMessage.CreateError(NuGetLogCode.NU1403, message, packagesConfigFile);
+                                var log = RestoreLogMessage.CreateError(NuGetLogCode.NU1403, message);
                                 log.ProjectPath = projectFile ?? packagesConfigFile;
                                 errors.Add(log);
                             }
@@ -147,7 +149,7 @@ namespace NuGet.PackageManagement.Utility
                         if (restoreLockedMode)
                         {
                             var errors = new List<IRestoreLogMessage>();
-                            var log = RestoreLogMessage.CreateError(NuGetLogCode.NU1004, Strings.Error_RestoreInLockedModePackagesConfig, packagesConfigFile);
+                            var log = RestoreLogMessage.CreateError(NuGetLogCode.NU1004, Strings.Error_RestoreInLockedModePackagesConfig);
                             log.ProjectPath = projectFile ?? packagesConfigFile;
                             errors.Add(log);
                             return errors;

@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -9,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using Microsoft.ServiceHub.Framework;
+using NuGet.PackageManagement.UI.Models.Package;
 using NuGet.PackageManagement.UI.ViewModels;
 using NuGet.PackageManagement.VisualStudio;
 using NuGet.Packaging.Core;
@@ -270,7 +273,8 @@ namespace NuGet.PackageManagement.UI
                     packageSearchMetadata,
                     packageDeprecationMetadata,
                     searchResultPackage.KnownOwnerViewModels,
-                    searchResultPackage.DownloadCount);
+                    searchResultPackage.DownloadCount,
+                    PackageVulnerabilities);
 
                 _metadataDict[detailedPackageMetadata.Version] = detailedPackageMetadata;
 
@@ -458,6 +462,11 @@ namespace NuGet.PackageManagement.UI
             get => PackageVulnerabilities?.Count > 0;
         }
 
+        public bool IsPackageVulnerableOrDeprecated
+        {
+            get => IsPackageVulnerable || IsPackageDeprecated;
+        }
+
         public int PackageVulnerabilityCount
         {
             get => PackageVulnerabilities?.Count ?? 0;
@@ -469,9 +478,9 @@ namespace NuGet.PackageManagement.UI
             {
                 return Resources.Label_DeprecationReasons_Unknown;
             }
-            else if (reasons.Contains(PackageDeprecationReason.CriticalBugs, StringComparer.OrdinalIgnoreCase))
+            else if (reasons.Contains(PackageDeprecationReasonConstants.CriticalBugs, StringComparer.OrdinalIgnoreCase))
             {
-                if (reasons.Contains(PackageDeprecationReason.Legacy, StringComparer.OrdinalIgnoreCase))
+                if (reasons.Contains(PackageDeprecationReasonConstants.Legacy, StringComparer.OrdinalIgnoreCase))
                 {
                     return Resources.Label_DeprecationReasons_LegacyAndCriticalBugs;
                 }
@@ -480,7 +489,7 @@ namespace NuGet.PackageManagement.UI
                     return Resources.Label_DeprecationReasons_CriticalBugs;
                 }
             }
-            else if (reasons.Contains(PackageDeprecationReason.Legacy, StringComparer.OrdinalIgnoreCase))
+            else if (reasons.Contains(PackageDeprecationReasonConstants.Legacy, StringComparer.OrdinalIgnoreCase))
             {
                 return Resources.Label_DeprecationReasons_Legacy;
             }
@@ -488,12 +497,6 @@ namespace NuGet.PackageManagement.UI
             {
                 return Resources.Label_DeprecationReasons_Unknown;
             }
-        }
-
-        private static class PackageDeprecationReason
-        {
-            public const string CriticalBugs = nameof(CriticalBugs);
-            public const string Legacy = nameof(Legacy);
         }
 
         private DetailedPackageMetadata _packageMetadata;
@@ -528,10 +531,7 @@ namespace NuGet.PackageManagement.UI
 
                     OnPropertyChanged(nameof(PackageMetadata));
                     OnPropertyChanged(nameof(IsPackageDeprecated));
-                    OnPropertyChanged(nameof(IsPackageVulnerable));
-                    OnPropertyChanged(nameof(PackageVulnerabilityCount));
-                    OnPropertyChanged(nameof(PackageVulnerabilities));
-                    OnPropertyChanged(nameof(PackageVulnerabilityMaxSeverity));
+                    OnPropertyChanged(nameof(IsPackageVulnerableOrDeprecated));
                 }
             }
         }
@@ -652,7 +652,8 @@ namespace NuGet.PackageManagement.UI
                     packageSearchMetadata,
                     packageDeprecationMetadata,
                     packageItemViewModel.KnownOwnerViewModels,
-                    packageItemViewModel.DownloadCount);
+                    packageItemViewModel.DownloadCount,
+                    packageItemViewModel.Vulnerabilities);
             }
             else
             {
@@ -672,7 +673,8 @@ namespace NuGet.PackageManagement.UI
                         searchMetadata,
                         deprecationData,
                         knownOwnerViewModels: null,
-                        searchMetadata.DownloadCount);
+                        searchMetadata.DownloadCount,
+                        PackageVulnerabilities);
 
                     _metadataDict[detailedPackageMetadata.Version] = detailedPackageMetadata;
 

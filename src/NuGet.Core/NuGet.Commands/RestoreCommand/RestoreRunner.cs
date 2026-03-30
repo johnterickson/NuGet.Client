@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -11,7 +13,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using NuGet.Common;
-using NuGet.ProjectModel;
 
 namespace NuGet.Commands
 {
@@ -100,9 +101,20 @@ namespace NuGet.Commands
         /// <summary>
         /// Execute and commit restore requests.
         /// </summary>
-        public static async Task<IReadOnlyList<RestoreResultPair>> RunWithoutCommit(
+        public static Task<IReadOnlyList<RestoreResultPair>> RunWithoutCommit(
             IEnumerable<RestoreSummaryRequest> restoreRequests,
             RestoreArgs restoreContext)
+        {
+            return RunWithoutCommitAsync(restoreRequests, restoreContext, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Execute and commit restore requests.
+        /// </summary>
+        public static async Task<IReadOnlyList<RestoreResultPair>> RunWithoutCommitAsync(
+            IEnumerable<RestoreSummaryRequest> restoreRequests,
+            RestoreArgs restoreContext,
+            CancellationToken cancellationToken)
         {
             var maxTasks = GetMaxTaskCount(restoreContext);
 
@@ -300,9 +312,7 @@ namespace NuGet.Commands
                     result is NoOpRestoreResult ? LogLevel.Information : LogLevel.Minimal,
                     string.Format(
                         CultureInfo.CurrentCulture,
-                        summaryRequest.Request.ProjectStyle == ProjectStyle.DotnetToolReference ?
-                            Strings.Log_RestoreCompleteDotnetTool :
-                            Strings.Log_RestoreComplete,
+                        Strings.Log_RestoreComplete,
                         summaryRequest.InputPath,
                         DatetimeUtility.ToReadableTimeFormat(result.ElapsedTime)));
             }
@@ -310,8 +320,6 @@ namespace NuGet.Commands
             {
                 log.LogMinimal(string.Format(
                     CultureInfo.CurrentCulture,
-                    summaryRequest.Request.ProjectStyle == ProjectStyle.DotnetToolReference ?
-                    Strings.Log_RestoreFailedDotnetTool :
                     Strings.Log_RestoreFailed,
                     summaryRequest.InputPath,
                     DatetimeUtility.ToReadableTimeFormat(result.ElapsedTime)));

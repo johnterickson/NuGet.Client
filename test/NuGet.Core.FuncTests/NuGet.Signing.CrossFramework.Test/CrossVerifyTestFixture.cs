@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
@@ -16,8 +18,8 @@ namespace NuGet.Signing.CrossFramework.Test
         private const string DotnetExe = "dotnet.exe";
         //In net472 code path, the SDK version and TFM could not be detected automatically, so we manually specified according to the sdk version we're testing against.
         //https://github.com/NuGet/Home/issues/12187
-        private const string SdkVersion = "9";
-        private const string SdkTfm = "net9.0";
+        private const string SdkVersion = "10";
+        private const string SdkTfm = "net10.0";
         internal string _dotnetExePath;
 #else
         private const string NuGetExe = "NuGet.exe";

@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -363,14 +365,6 @@ namespace NuGet.Client
             }
 
             return 0;
-        }
-
-        private static Version NormalizeVersion(Version version)
-        {
-            return new Version(version.Major,
-                version.Minor,
-                Math.Max(version.Build, 0),
-                Math.Max(version.Revision, 0));
         }
 
         public class ManagedCodeCriteria

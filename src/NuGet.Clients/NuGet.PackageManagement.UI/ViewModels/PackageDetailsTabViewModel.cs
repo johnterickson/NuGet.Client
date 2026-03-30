@@ -1,10 +1,9 @@
+#nullable disable
+
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using NuGet.VisualStudio;
 using NuGet.VisualStudio.Internal.Contracts;
 using NuGet.VisualStudio.Telemetry;
 
@@ -17,7 +16,7 @@ namespace NuGet.PackageManagement.UI.ViewModels
 
         public ReadmePreviewViewModel ReadmePreviewViewModel { get; private set; }
 
-        private DetailControlModel DetailControlModel { get; set; }
+        private DetailControlModel _detailControlModel;
 
         public ObservableCollection<TitledPageViewModelBase> Tabs { get; private set; }
 
@@ -34,24 +33,22 @@ namespace NuGet.PackageManagement.UI.ViewModels
             Tabs = new ObservableCollection<TitledPageViewModelBase>();
         }
 
-        public async Task InitializeAsync(DetailControlModel detailControlModel, INuGetPackageFileService nugetPackageFileService, ItemFilter currentFilter, PackageMetadataTab initialSelectedTab)
+        public void Initialize(DetailControlModel detailControlModel, INuGetPackageFileService nugetPackageFileService, ItemFilter currentFilter, PackageMetadataTab initialSelectedTab, bool isReadmeTabEnabled)
         {
-            var nuGetFeatureFlagService = await ServiceLocator.GetComponentModelServiceAsync<INuGetFeatureFlagService>();
-            _readmeTabEnabled = await nuGetFeatureFlagService.IsFeatureEnabledAsync(NuGetFeatureFlagConstants.RenderReadmeInPMUI);
-
-            ReadmePreviewViewModel = new ReadmePreviewViewModel(nugetPackageFileService, currentFilter, _readmeTabEnabled);
-            DetailControlModel = detailControlModel;
+            _readmeTabEnabled = isReadmeTabEnabled;
+            _detailControlModel = detailControlModel;
 
             if (_readmeTabEnabled)
             {
+                ReadmePreviewViewModel = new ReadmePreviewViewModel(nugetPackageFileService, currentFilter, _readmeTabEnabled);
                 Tabs.Add(ReadmePreviewViewModel);
             }
 
-            Tabs.Add(DetailControlModel);
+            Tabs.Add(_detailControlModel);
 
             SelectedTab = Tabs.FirstOrDefault(t => t.IsVisible && ConvertFromTabType(t) == initialSelectedTab) ?? Tabs.FirstOrDefault(t => t.IsVisible);
 
-            DetailControlModel.PropertyChanged += DetailControlModel_PropertyChanged;
+            _detailControlModel.PropertyChanged += DetailControlModel_PropertyChanged;
 
             foreach (var tab in Tabs)
             {
@@ -74,13 +71,13 @@ namespace NuGet.PackageManagement.UI.ViewModels
             {
                 return;
             }
-            _disposed = true;
-            DetailControlModel.PropertyChanged -= DetailControlModel_PropertyChanged;
-
+            _detailControlModel.PropertyChanged -= DetailControlModel_PropertyChanged;
             foreach (var tab in Tabs)
             {
                 tab.PropertyChanged -= IsVisible_PropertyChanged;
             }
+            ReadmePreviewViewModel?.Dispose();
+            _disposed = true;
         }
 
         private void IsVisible_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -108,13 +105,11 @@ namespace NuGet.PackageManagement.UI.ViewModels
 
         private void DetailControlModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            NuGetUIThreadHelper.JoinableTaskFactory.RunAsync(async () =>
+            if (_readmeTabEnabled
+                && e.PropertyName == nameof(_detailControlModel.PackageMetadata))
             {
-                if (_readmeTabEnabled && e.PropertyName == nameof(DetailControlModel.PackageMetadata))
-                {
-                    await ReadmePreviewViewModel.SetPackageMetadataAsync(DetailControlModel.PackageMetadata, CancellationToken.None);
-                }
-            }).PostOnFailure(nameof(PackageDetailsTabViewModel), nameof(DetailControlModel_PropertyChanged));
+                ReadmePreviewViewModel.SetPackageMetadataAsync(_detailControlModel.PackageMetadata).PostOnFailure(nameof(PackageDetailsTabViewModel), nameof(DetailControlModel_PropertyChanged));
+            }
         }
     }
 }

@@ -1,8 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#nullable enable
-
 using System;
 using System.Formats.Asn1;
 using System.Numerics;
@@ -181,13 +179,6 @@ namespace NuGet.Packaging.Test
             }
         }
 
-        private static byte[] GetDefaultSha256Hash()
-        {
-            byte[] data = Encoding.UTF8.GetBytes("peach");
-
-            return Common.HashAlgorithmName.SHA256.ComputeHash(data);
-        }
-
         private static TestTstInfo CreateTestTstInfo(
             TestAccuracy? accuracy = null,
             bool ordering = false,
@@ -209,7 +200,6 @@ namespace NuGet.Packaging.Test
                 serialNumber,
                 timestamp,
                 accuracy,
-                ordering,
                 nonce,
                 tsa,
                 extensions);

@@ -1,25 +1,18 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#nullable enable
 #pragma warning disable CS1591
 
 using System;
 using System.Collections.Generic;
-#if IS_SIGNING_SUPPORTED
 using System.Formats.Asn1;
 using System.Net;
-#endif
 using System.Numerics;
 using System.Security.Cryptography;
-#if IS_SIGNING_SUPPORTED
 using System.Security.Cryptography.Pkcs;
-#endif
 using System.Security.Cryptography.X509Certificates;
 using NuGet.Packaging.Signing;
-#if IS_SIGNING_SUPPORTED
 using Microsoft.Internal.NuGet.Testing.SignedPackages.Asn1;
-#endif
 
 namespace Microsoft.Internal.NuGet.Testing.SignedPackages
 {
@@ -28,7 +21,6 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages
     {
         private const string RequestContentType = "application/timestamp-query";
         private const string ResponseContentType = "application/timestamp-response";
-
         private readonly TimestampServiceOptions _options;
         private readonly HashSet<BigInteger> _serialNumbers;
         private BigInteger _nextSerialNumber;
@@ -127,7 +119,6 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages
             return new TimestampService(certificateAuthority, certificate, uri, serviceOptions);
         }
 
-#if IS_SIGNING_SUPPORTED
         public override void Respond(HttpListenerContext context)
         {
             if (context == null)
@@ -271,6 +262,5 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages
 
             return new Asn1.Accuracy(seconds, milliseconds, microseconds);
         }
-#endif
     }
 }

@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -207,12 +209,10 @@ namespace NuGet.PackageManagement.UI
         {
             IInstalledAndTransitivePackages installedAndTransitivePackages = await project.GetInstalledAndTransitivePackagesAsync(ServiceBroker, cancellationToken);
             IPackageReferenceContextInfo installedPackage = installedAndTransitivePackages.InstalledPackages
-                .Where(p => StringComparer.OrdinalIgnoreCase.Equals(p.Identity.Id, packageId))
-                .FirstOrDefault();
+                .FirstOrDefault(p => StringComparer.OrdinalIgnoreCase.Equals(p.Identity.Id, packageId));
 
             ITransitivePackageReferenceContextInfo transitivePackage = installedAndTransitivePackages.TransitivePackages
-                .Where(p => StringComparer.OrdinalIgnoreCase.Equals(p.Identity.Id, packageId))
-                .FirstOrDefault();
+                .FirstOrDefault(p => StringComparer.OrdinalIgnoreCase.Equals(p.Identity.Id, packageId));
             return installedPackage ?? transitivePackage;
         }
 

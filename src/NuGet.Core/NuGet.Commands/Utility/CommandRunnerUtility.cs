@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Linq;
 using System.Threading;
@@ -101,9 +103,9 @@ namespace NuGet.Commands
         public static async Task<SymbolPackageUpdateResourceV3> GetSymbolPackageUpdateResource(IPackageSourceProvider sourceProvider, string source, CancellationToken cancellationToken)
         {
             // Use a loaded PackageSource if possible since it contains credential info
-            var packageSource = sourceProvider.LoadPackageSources()
-                .Where(e => e.IsEnabled && string.Equals(source, e.Source, StringComparison.OrdinalIgnoreCase))
-                .FirstOrDefault();
+            var packageSource = sourceProvider
+                .LoadPackageSources()
+                .FirstOrDefault(e => e.IsEnabled && string.Equals(source, e.Source, StringComparison.OrdinalIgnoreCase));
 
             if (packageSource == null)
             {

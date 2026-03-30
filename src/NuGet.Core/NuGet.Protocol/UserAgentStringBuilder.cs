@@ -1,7 +1,11 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
+#if NETCOREAPP
 using System;
+#endif
 using System.Globalization;
 using System.Runtime.InteropServices;
 using NuGet.Packaging;
@@ -36,12 +40,6 @@ namespace NuGet.Protocol.Core.Types
         }
 
         public string NuGetClientVersion { get; }
-
-        [Obsolete("This value is now ignored")]
-        public UserAgentStringBuilder WithOSDescription(string osInfo)
-        {
-            return this;
-        }
 
         public UserAgentStringBuilder WithVisualStudioSKU(string vsInfo)
         {

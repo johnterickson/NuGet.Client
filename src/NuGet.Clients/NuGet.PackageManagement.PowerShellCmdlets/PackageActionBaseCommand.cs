@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -214,7 +216,7 @@ namespace NuGet.PackageManagement.PowerShellCmdlets
                 }
                 else
                 {
-                    var identity = actions.Select(v => v.PackageIdentity).Where(p => p.Id.Equals(packageId, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+                    var identity = actions.Select(v => v.PackageIdentity).FirstOrDefault(p => p.Id.Equals(packageId, StringComparison.OrdinalIgnoreCase));
                     NuGetPackageManager.SetDirectInstall(identity, projectContext);
                     await PackageManager.ExecuteNuGetProjectActionsAsync(project, actions, this, resolutionContext.SourceCacheContext, CancellationToken.None);
                     NuGetPackageManager.ClearDirectInstall(projectContext);

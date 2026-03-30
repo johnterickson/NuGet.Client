@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -9,9 +11,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-#if IS_SIGNING_SUPPORTED
 using System.Security.Cryptography.X509Certificates;
-#endif
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -26,9 +26,7 @@ using NuGet.Packaging.Signing;
 using NuGet.Protocol.Plugins;
 using NuGet.Test.Utility;
 using NuGet.Versioning;
-#if IS_SIGNING_SUPPORTED
 using Test.Utility.Signing;
-#endif
 using Xunit;
 
 namespace NuGet.Packaging.Test
@@ -39,11 +37,7 @@ namespace NuGet.Packaging.Test
     public class PackageExtractorTests
     {
         private static readonly ClientPolicyContext DefaultContext = ClientPolicyContext.GetClientPolicy(NullSettings.Instance, NullLogger.Instance);
-
-        private const string EmptyTrustedSignersList = "signatureValidationMode is set to require, so packages are allowed only if signed by trusted signers; however, no trusted signers were specified.";
-        private const string EmptyRepoAllowList = "This repository indicated that all its packages are repository signed; however, it listed no signing certificates.";
         private const string NoMatchInTrustedSignersList = "This package is signed but not by a trusted signer.";
-        private const string NoMatchInRepoAllowList = "This package was not repository signed with a certificate listed by this repository.";
         private const string NotSignedPackageRepo = "This repository indicated that all its packages are repository signed; however, this package is unsigned.";
         private const string NotSignedPackageRequire = "signatureValidationMode is set to require, so packages are allowed only if signed by trusted signers; however, this package is unsigned.";
         private const string SignatureVerificationEnvironmentVariable = "DOTNET_NUGET_SIGNATURE_VERIFICATION";
@@ -285,7 +279,7 @@ namespace NuGet.Packaging.Test
                 using (var stream = File.Open(packageFile, FileMode.Open))
                 using (var zipFile = new ZipArchive(stream, ZipArchiveMode.Update))
                 {
-                    var nuspecEntry = zipFile.Entries.Where(e => e.FullName.EndsWith(".nuspec")).Single();
+                    var nuspecEntry = zipFile.Entries.Single(e => e.FullName.EndsWith(".nuspec"));
 
                     using (var nuspecStream = nuspecEntry.Open())
                     using (var reader = new StreamReader(nuspecStream))
@@ -432,7 +426,7 @@ namespace NuGet.Packaging.Test
                             CancellationToken.None);
 
                         // Assert
-                        Assert.Equal(1, files.Where(p => p.EndsWith(".nupkg")).Count());
+                        Assert.Equal(1, files.Count(p => p.EndsWith(".nupkg")));
                     }
                 }
             }
@@ -1750,7 +1744,6 @@ namespace NuGet.Packaging.Test
             }
         }
 
-#if IS_SIGNING_SUPPORTED
         [PlatformFact(Platform.Windows)]
         public async Task ExtractPackageAsync_UnsignedPackage_WhenRepositorySaysAllPackagesSigned_ErrorAsync()
         {
@@ -2870,77 +2863,6 @@ namespace NuGet.Packaging.Test
                 }
             }
         }
-#endif
-
-#if IS_CORECLR && !IS_SIGNING_SUPPORTED
-        [Fact]
-        public async Task ExtractPackageAsync_RequireMode_UnsignedPackage_InCoreCLR_SkipsSigningVerificationAsync()
-        {
-            // Arrange
-            var signedPackageVerifier = new Mock<IPackageSignatureVerifier>(MockBehavior.Strict);
-
-            signedPackageVerifier.Setup(x => x.VerifySignaturesAsync(
-                It.IsAny<ISignedPackageReader>(),
-                It.IsAny<SignedPackageVerifierSettings>(),
-                It.IsAny<CancellationToken>(),
-                It.IsAny<Guid>())).
-                ReturnsAsync(new VerifySignaturesResult(isValid: false, isSigned: false));
-
-            var extractionContext = new PackageExtractionContext(
-                packageSaveMode: PackageSaveMode.Nuspec | PackageSaveMode.Files,
-                xmlDocFileSaveMode: XmlDocFileSaveMode.None,
-                clientPolicyContext: new ClientPolicyContext(SignatureValidationMode.Require, allowList: null),
-                logger: NullLogger.Instance)
-            {
-                SignedPackageVerifier = signedPackageVerifier.Object
-            };
-
-            using (var test = new ExtractPackageAsyncTest(extractionContext))
-            {
-
-                var packageContext = new SimpleTestPackageContext();
-                await SimpleTestPackageUtility.CreatePackagesAsync(test.Source, packageContext);
-
-                var packageFile = new FileInfo(Path.Combine(test.Source,
-                    $"{packageContext.Identity.Id}.{packageContext.Identity.Version.ToNormalizedString()}.nupkg"));
-
-                using (var packageReader = new PackageArchiveReader(File.OpenRead(packageFile.FullName)))
-                {
-                    // Act
-                    IEnumerable<string> files = await PackageExtractor.ExtractPackageAsync(
-                            test.Source,
-                            packageReader,
-                            test.Resolver,
-                            test.Context,
-                            CancellationToken.None);
-
-                    // Assert
-                    files.Should().NotBeNull();
-                    files.Count().Should().Be(8);
-                    var packagePath = Path.Combine(test.DestinationDirectory.FullName,
-                        $"{packageContext.Identity.Id}.{packageContext.Identity.Version.ToNormalizedString()}");
-
-                    Directory.Exists(packagePath).Should().BeTrue();
-                    File.Exists(Path.Combine(packagePath,
-                        $"{packageContext.Id}.nuspec")).Should().BeTrue();
-                    File.Exists(Path.Combine(packagePath,
-                        "contentFiles/any/any/config.xml")).Should().BeTrue();
-                    File.Exists(Path.Combine(packagePath,
-                        "contentFiles/cs/net45/code.cs")).Should().BeTrue();
-                    File.Exists(Path.Combine(packagePath,
-                        "lib/net45/a.dll")).Should().BeTrue();
-                    File.Exists(Path.Combine(packagePath,
-                        "lib/netstandard1.0/a.dll")).Should().BeTrue();
-                    File.Exists(Path.Combine(packagePath,
-                        $"build/net45/{packageContext.Id}.targets")).Should().BeTrue();
-                    File.Exists(Path.Combine(packagePath,
-                        "runtimes/any/native/a.dll")).Should().BeTrue();
-                    File.Exists(Path.Combine(packagePath,
-                        "tools/a.exe")).Should().BeTrue();
-                }
-            }
-        }
-#endif
 
         [Fact]
         public async Task InstallFromSourceAsync_WithoutPackageSaveModeNuspec_DoesNotExtractNuspecAsync()
@@ -3220,7 +3142,6 @@ namespace NuGet.Packaging.Test
             packageDownloader.Verify();
         }
 
-#if IS_SIGNING_SUPPORTED
         [Fact]
         public async Task InstallFromSourceAsyncByPackageDownloader_TrustedSignPackageAsync()
         {
@@ -4735,7 +4656,6 @@ namespace NuGet.Packaging.Test
                 }
             }
         }
-#endif
 
         private string PermissionWithUMaskApplied(string permission)
         {
@@ -5310,7 +5230,6 @@ namespace NuGet.Packaging.Test
             yield return new object[] { SignatureValidationMode.Require };
         }
 
-#if IS_SIGNING_SUPPORTED
         private static RepositorySignatureInfo CreateTestRepositorySignatureInfo(List<X509Certificate2> certificates, bool allSigned)
         {
             var repoCertificateInfo = new List<IRepositoryCertificateInfo>();
@@ -5335,6 +5254,5 @@ namespace NuGet.Packaging.Test
 
             return new RepositorySignatureInfo(allSigned, repoCertificateInfo);
         }
-#endif
     }
 }

@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -30,6 +32,11 @@ namespace NuGet.CommandLine.XPlat
                     "-s|--source <source>",
                     Strings.Source_Description,
                     CommandOptionType.SingleValue);
+
+                var allowInsecureConnections = push.Option(
+                    "--allow-insecure-connections",
+                    Strings.AllowInsecureConnections_Description,
+                    CommandOptionType.NoValue);
 
                 var symbolSource = push.Option(
                     "-ss|--symbol-source <source>",
@@ -81,6 +88,11 @@ namespace NuGet.CommandLine.XPlat
                     Strings.PushCommandSkipDuplicateDescription,
                     CommandOptionType.NoValue);
 
+                var configurationFile = push.Option(
+                    "--configfile",
+                    Strings.Option_ConfigFile,
+                    CommandOptionType.SingleValue);
+
                 push.OnExecute(async () =>
                 {
                     if (arguments.Values.Count < 1)
@@ -97,6 +109,7 @@ namespace NuGet.CommandLine.XPlat
                     bool noSymbolsValue = noSymbols.HasValue();
                     bool noServiceEndpoint = noServiceEndpointDescription.HasValue();
                     bool skipDuplicateValue = skipDuplicate.HasValue();
+                    bool allowInsecureConnectionsValue = allowInsecureConnections.HasValue();
                     int timeoutSeconds = 0;
 
                     if (timeout.HasValue() && !int.TryParse(timeout.Value(), out timeoutSeconds))
@@ -105,12 +118,13 @@ namespace NuGet.CommandLine.XPlat
                     }
 
 #pragma warning disable CS0618 // Type or member is obsolete
-                    var sourceProvider = new PackageSourceProvider(XPlatUtility.GetSettingsForCurrentWorkingDirectory(), enablePackageSourcesChangedEvent: false);
+                    var sourceProvider = new PackageSourceProvider(XPlatUtility.ProcessConfigFile(configurationFile.Value()), enablePackageSourcesChangedEvent: false);
 #pragma warning restore CS0618 // Type or member is obsolete
 
                     try
                     {
                         DefaultCredentialServiceUtility.SetupDefaultCredentialService(getLogger(), !interactive.HasValue());
+
                         await PushRunner.Run(
                             sourceProvider.Settings,
                             sourceProvider,
@@ -124,6 +138,7 @@ namespace NuGet.CommandLine.XPlat
                             noSymbolsValue,
                             noServiceEndpoint,
                             skipDuplicateValue,
+                            allowInsecureConnectionsValue,
                             getLogger());
                     }
                     catch (TaskCanceledException ex)

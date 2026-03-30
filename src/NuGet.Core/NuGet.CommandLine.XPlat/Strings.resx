@@ -586,7 +586,7 @@ For more information, visit https://docs.nuget.org/docs/reference/command-line-r
     <value>Set the verbosity level of the command. Allowed values are q[uiet], m[inimal], n[ormal], d[etailed], and diag[nostic].</value>
     <comment>Please don't localize "q[uiet]", "m[inimal]", "n[ormal]", "d[etailed]", or "diag[nostic]"</comment>
   </data>
-  <data name="AddPkg_PackagePrerelease" xml:space="preserve">
+  <data name="Prerelease_Description" xml:space="preserve">
     <value>Allows prerelease packages to be installed.</value>
   </data>
   <data name="Error_PrereleaseWhenVersionSpecified" xml:space="preserve">
@@ -741,13 +741,13 @@ The search is a case-insensitive string comparison using the supplied value, whi
   <data name="Error_TrustFingerPrintAlreadyExist" xml:space="preserve">
     <value>The certificate finger you're trying to add is already in the certificate fingerprint list.</value>
   </data>
-  <data name="Warning_HttpServerUsage" xml:space="preserve">
-    <value>You are running the '{0}' operation with an 'HTTP' source, '{1}'. Non-HTTPS access will be removed in a future version. Consider migrating to an 'HTTPS' source.</value>
+  <data name="Error_HttpServerUsage" xml:space="preserve">
+    <value>You are running the '{0}' operation with an 'HTTP' source, '{1}'. NuGet requires HTTPS sources. To use HTTP sources, you must explicitly set 'allowInsecureConnections' to true in your NuGet.Config file. Refer to https://aka.ms/nuget-https-everywhere for more information.</value>
     <comment>0 - The command name. Ex. Push/Delete. 1 - server uri.</comment>
   </data>
-  <data name="Warning_HttpServerUsage_MultipleSources" xml:space="preserve">
+  <data name="Error_HttpServerUsage_MultipleSources" xml:space="preserve">
     <value>You are running the '{0}' operation with 'HTTP' sources: {1}
-Non-HTTPS access will be removed in a future version. Consider migrating to 'HTTPS' sources.</value>
+NuGet requires HTTPS sources. To use HTTP sources, you must explicitly set 'allowInsecureConnections' to true in your NuGet.Config file. Refer to https://aka.ms/nuget-https-everywhere for more information.</value>
     <comment>0 - The command name. Ex. Push/Delete. 1 - list of server uris</comment>
   </data>
   <data name="Debug_CurrentUICulture" xml:space="preserve">
@@ -977,5 +977,194 @@ Non-HTTPS access will be removed in a future version. Consider migrating to 'HTT
   <data name="Error_ProjectAssetsFilePropertyNotFound" xml:space="preserve">
     <value>Project '{0}' does not have MSBuild property ProjectAssetsFile defined. This may indicate that this project does not support NuGet PackageReference, or that project customization has prevented the .NET SDK setting default values.</value>
     <comment>{0} - Path to the project with the error</comment>
+  </data>
+  <data name="Warning_AuditSourceWithoutData" xml:space="preserve">
+    <value>Audit source '{0}' did not provide any vulnerability data.</value>
+    <comment>{0} is the source name</comment>
+  </data>
+  <data name="Unsupported_UpdatingMoreThanOneProject" xml:space="preserve">
+    <value>Unsupported: Updating more than one project is not yet supported</value>
+  </data>
+  <data name="PackageUpdate_PreviewRestoreFailed" xml:space="preserve">
+    <value>Preview restore with updated packages was not successful. Force mode is not yet available.</value>
+  </data>
+  <data name="Error_CouldNotFindPackageVersionForCpmPackage" xml:space="preserve">
+    <value>Central Package Management configuration error: Could not find PackageVersion for package {0}</value>
+    <comment>0 - a package name
+Do not translate "PackageVersion"</comment>
+  </data>
+  <data name="Unsupported_UpdatePackageWithDifferentPerTfmVersions" xml:space="preserve">
+    <value>The package {0} references different versions of the package for different target frameworks. This is not supported by this command. Please edit the project file directly. ({1})</value>
+    <comment>0 - The package id
+1 - The project path</comment>
+  </data>
+  <data name="PackageUpdateCommand_Description" xml:space="preserve">
+    <value>Update referenced packages in a project or solution.</value>
+  </data>
+  <data name="PackageUpdateCommand_ProjectOptionDescription" xml:space="preserve">
+    <value>Path to a project or solution file, or a directory.</value>
+  </data>
+  <data name="Warning_AlreadyHighestVersion" xml:space="preserve">
+    <value>The package {0} is already referencing the highest version {1} in project {2}</value>
+    <comment>0 - package id
+1 - version string
+2 - project path</comment>
+  </data>
+  <data name="Unsupported_UpgradeAllPackages" xml:space="preserve">
+    <value>Unsupported: Upgrading all packages in a project is not yet supported</value>
+  </data>
+  <data name="Warning_AlreadyUsingSameVersion" xml:space="preserve">
+    <value>Package {0} is already referencing version {1}</value>
+    <comment>0 - package id
+1 - version string</comment>
+  </data>
+  <data name="Error_MissingVersion" xml:space="preserve">
+    <value>Missing version from {0}</value>
+    <comment>0 - package id </comment>
+  </data>
+  <data name="Error_InvalidVersionRange" xml:space="preserve">
+    <value>Invalid version range '{0}'</value>
+    <comment>0 - string provided by customer</comment>
+  </data>
+  <data name="PackageUpdate_PackageArgumentDescription" xml:space="preserve">
+    <value>Package reference in the form of a package identifier like 'Newtonsoft.Json' or package identifier and version separated by '@' like 'Newtonsoft.Json@13.0.3'.</value>
+  </data>
+  <data name="PackageUpdate_UpdatingOutdatedPackages" xml:space="preserve">
+    <value>Updating outdated packages in {0}.</value>
+    <comment>{0}: the project or solution that is being updated</comment>
+  </data>
+  <data name="PackageUpdate_LoadingDGSpec" xml:space="preserve">
+    <value>Loading Project(s).</value>
+  </data>
+  <data name="PackageUpdate_FindingUpdateVersions" xml:space="preserve">
+    <value>Finding versions of packages to update.</value>
+  </data>
+  <data name="PackageUpdate_PreviewRestore" xml:space="preserve">
+    <value>Running preview restore to check package compatibility.</value>
+  </data>
+  <data name="PackageUpdate_UpdatedMessage" xml:space="preserve">
+    <value>Updating {0} {1} to {2}.</value>
+    <comment>{0}: package id
+{1}: existing version
+{2}: new version</comment>
+  </data>
+  <data name="PackageUpdate_FinalSummary" xml:space="preserve">
+    <value>Updated {0} packages in {1} scanned packages.</value>
+    <comment>{0}: Number of packages updated
+{1}: Package checked for updated versions</comment>
+  </data>
+  <data name="Error_AddPkgUnresolved" xml:space="preserve">
+    <value>Unable to find a resolved package for '{0}'. This is a tooling error. Please file an issue at https://github.com/NuGet/Home.</value>
+    <comment>{0} Package Id</comment>
+  </data>
+  <data name="Error_AddPkgProjectReference" xml:space="preserve">
+    <value>Failed to add a PackageReference for '{0}'. A ProjectReference with the same name already exists and a package with the same name cannot be added to the project.</value>
+    <comment>{0} - PackageId</comment>
+  </data>
+  <data name="AllowInsecureConnections_Description" xml:space="preserve">
+    <value>Allows pushing to HTTP sources (insecure).</value>
+  </data>
+  <data name="PackageUpdate_AllPackagesAlreadyUpToDate" xml:space="preserve">
+    <value>All packages are already up to date.</value>
+  </data>
+  <data name="PackageUpdateCommand_VulnerableOptionDescription" xml:space="preserve">
+    <value>Upgrade packages with known vulnerabilities.</value>
+  </data>
+  <data name="PackageUpdate_AlreadyUpToDate" xml:space="preserve">
+    <value>All packages are up to date</value>
+  </data>
+  <data name="PackageUpdate_NoVulnerablePackages" xml:space="preserve">
+    <value>No upgradable packages have known vulnerabilities.</value>
+  </data>
+  <data name="PackageUpdate_UpdatingVulnerablePackages" xml:space="preserve">
+    <value>Updating packages with security advisories in {0}</value>
+    <comment>{0} - the project/solution being checked</comment>
+  </data>
+  <data name="PackageUpdate_AllVersionsHaveAdvisories" xml:space="preserve">
+    <value>All versions of package {0} have security advisories. Unable to find a non-vulnerable version to update to.</value>
+    <comment>{0}: package id</comment>
+  </data>
+  <data name="PackageUpdate_AuditDisabled" xml:space="preserve">
+    <value>This command requires NuGetAudit to be enabled at this time. See https://aka.ms/nuget/audit for more information.</value>
+    <comment>{Locked="NuGetAudit"}{Locked="dotnet package update"}</comment>
+  </data>
+  <data name="PackageUpdate_AuditModeIsDirect" xml:space="preserve">
+    <value>NuGetAuditMode is set to direct, which means that transitive packages with known vulnerabilities will not be updated. See https://aka.ms/nuget/audit for more information.</value>
+    <comment>{Locked="NuGetAuditMode"}</comment>
+  </data>
+  <data name="Error_PackageSourceMappingNotFound" xml:space="preserve">
+    <value>Package source mapping is enabled, but no mapping for package {0} was found. See https://aka.ms/nuget/psm for more information.</value>
+    <comment>{0} - package id</comment>
+  </data>
+  <data name="Error_CannotUpgradeAutoReferencedPackage" xml:space="preserve">
+    <value>{0}: Package {1} is implicitly added by the SDK and cannot be upgraded independently</value>
+    <comment>{0} - project referencing the package
+{1} - package id</comment>
+  </data>
+  <data name="ArgumentNullOrEmpty" xml:space="preserve">
+    <value>Argument cannot be null or empty.</value>
+  </data>
+  <data name="Error_InvalidVersion" xml:space="preserve">
+    <value>Invalid version value '{0}'.</value>
+    <comment>0 - package version</comment>
+  </data>
+  <data name="PackageDownloadCommand_Description" xml:space="preserve">
+    <value>Downloads a NuGet package to a local folder without requiring a project file.</value>
+  </data>
+  <data name="PackageDownloadCommand_PackageIdDescription" xml:space="preserve">
+    <value>Package identifier (e.g. 'Newtonsoft.Json').</value>
+  </data>
+  <data name="PackageDownloadCommand_AllowInsecureConnectionsDescription" xml:space="preserve">
+    <value>Allows downloading from HTTP (non-HTTPS) package sources.</value>
+  </data>
+  <data name="PackageDownloadCommand_OutputDirectoryDescription" xml:space="preserve">
+    <value>Directory where the package will be placed. Defaults to the current working directory.</value>
+  </data>
+  <data name="PackageDownloadCommand_SourcesDescription" xml:space="preserve">
+    <value>Specifies one or more NuGet package sources to use.</value>
+  </data>
+  <data name="PackageDownloadCommand_Starting" xml:space="preserve">
+    <value>Downloading package {0}, version {1}.</value>
+    <comment>0- package id
+1- package version</comment>
+  </data>
+  <data name="PackageDownloadCommand_AlreadyInstalled" xml:space="preserve">
+    <value>Skipping download. Package '{0}' version {1} already exists at '{2}'.</value>
+    <comment>0 - package id
+1 - version
+2 - directory path where the package was downloaded</comment>
+  </data>
+  <data name="PackageDownloadCommand_Succeeded" xml:space="preserve">
+    <value>Package '{0}' ({1}) successfully downloaded to '{2}'.</value>
+    <comment>0 - package id
+1 - package version
+2 - package download location</comment>
+  </data>
+  <data name="PackageDownloadCommand_Failed" xml:space="preserve">
+    <value>Package '{0}' ({1}) failed to download.</value>
+    <comment>0 - package id
+1 - package version</comment>
+  </data>
+  <data name="PackageDownloadCommand_UnableToDownload" xml:space="preserve">
+    <value>Package download failed for `{0} {1}` from source `{2}`.</value>
+    <comment>0 package id
+1 package version
+2 package source</comment>
+  </data>
+  <data name="PackageDownloadCommand_LatestVersion" xml:space="preserve">
+    <value>latest version</value>
+  </data>
+  <data name="Error_PackageDownload_VersionNotFound" xml:space="preserve">
+    <value>Unable to find a valid package version</value>
+  </data>
+  <data name="PackageDownloadCommand_PackageSourceMapping_NoSuchSource" xml:space="preserve">
+    <value>The mapped source '{0}' for package '{1}' was not found among the configured sources.</value>
+    <comment>0 - package source name
+1 - package name</comment>
+  </data>
+  <data name="PackageDownloadCommand_PackageSourceMapping_NoSourcesMapped" xml:space="preserve">
+    <value>Unable to download package '{0}'. PackageSourceMapping is enabled, but no mapped sources were found for this package. The following source(s) were not considered: {1}.</value>
+    <comment>{0} = package ID 
+{1} = comma-separated list of all configured sources </comment>
   </data>
 </root>

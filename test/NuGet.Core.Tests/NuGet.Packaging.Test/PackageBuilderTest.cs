@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 #if !IS_CORECLR
@@ -79,7 +81,6 @@ namespace NuGet.Packaging.Test
                     var files = archive.Entries
                         .Where(file => file.Name == "_._")
                         .Select(file => file.FullName)
-                        .OrderBy(s => s)
                         .ToArray();
 
                     // Assert
@@ -148,7 +149,6 @@ namespace NuGet.Packaging.Test
                     var files = archive.Entries
                         .Where(file => file.Name.StartsWith("foo"))
                         .Select(file => file.FullName)
-                        .OrderBy(s => s)
                         .ToArray();
 
                     // Assert
@@ -221,6 +221,65 @@ namespace NuGet.Packaging.Test
 </package>".Replace("\r\n", "\n"), result.Replace("\r\n", "\n"));
             }
         }
+
+        [Fact]
+        public void CreatePackage_IncludesAStableOrderOfContentTypesXml()
+        {
+            // Arrange
+            PackageBuilder builder = new PackageBuilder()
+            {
+                Id = "A",
+                Version = NuGetVersion.Parse("1.0"),
+                Description = "Descriptions",
+            };
+
+            builder.Authors.Add("testAuthor");
+
+            var dependencies = new List<PackageDependency>();
+            dependencies.Add(new PackageDependency("packageB", VersionRange.Parse("1.0.0"), null, new[] { "z" }));
+            dependencies.Add(new PackageDependency(
+                "packageC",
+                VersionRange.Parse("1.0.0"),
+                new[] { "a", "b", "c" },
+                new[] { "b", "c" }));
+
+            var set = new PackageDependencyGroup(NuGetFramework.AnyFramework, dependencies);
+            builder.DependencyGroups.Add(set);
+
+            var sep = Path.DirectorySeparatorChar;
+
+            builder.Files.Add(CreatePackageFile(@"content" + sep + "foo.jpg"));
+            builder.Files.Add(CreatePackageFile(@"contentFiles" + sep + "any" + sep + "any" + sep + "foo.png"));
+
+            using (var ms = new MemoryStream())
+            {
+                // Act
+                builder.Save(ms);
+
+                ms.Seek(0, SeekOrigin.Begin);
+
+                using (var archive = new ZipArchive(ms, ZipArchiveMode.Read, leaveOpen: true))
+                {
+                    var contentTypesEntry = archive.Entries
+                        .First(file => file.FullName == "[Content_Types].xml");
+
+                    using (StreamReader reader = new StreamReader(contentTypesEntry.Open()))
+                    {
+                        var contents = reader.ReadToEnd();
+                        // Assert
+                        Assert.Equal(@"<?xml version=""1.0"" encoding=""utf-8""?>
+<Types xmlns=""http://schemas.openxmlformats.org/package/2006/content-types"">
+  <Default Extension=""rels"" ContentType=""application/vnd.openxmlformats-package.relationships+xml"" />
+  <Default Extension=""psmdcp"" ContentType=""application/vnd.openxmlformats-package.core-properties+xml"" />
+  <Default Extension=""jpg"" ContentType=""application/octet"" />
+  <Default Extension=""nuspec"" ContentType=""application/octet"" />
+  <Default Extension=""png"" ContentType=""application/octet"" />
+</Types>", contents);
+                    }
+                }
+            }
+        }
+
 
         [Theory]
         [InlineData(".NETFramework,Version=v4.7.2", ".NETFramework4.7.2")]
@@ -2365,20 +2424,6 @@ Description is required.");
                 "Invalid assembly reference 'baz'. Ensure that a file named 'baz' exists in the lib directory.");
         }
 
-        public static IEnumerable<object[]> InvalidDependencyData
-        {
-            get
-            {
-                var prereleaseVer = NuGetVersion.Parse("1.0.0-a");
-                var version = NuGetVersion.Parse("2.3.0.6232");
-
-                yield return new object[] { new VersionRange(prereleaseVer) };
-                yield return new object[] { new VersionRange(prereleaseVer, true, version) };
-                yield return new object[] { new VersionRange(version, true, prereleaseVer, true) };
-                yield return new object[] { new VersionRange(prereleaseVer, true, prereleaseVer) };
-            }
-        }
-
         [Fact]
         public void PackageBuilderRequireLicenseAcceptedWithoutLicenseUrlThrows()
         {
@@ -2729,21 +2774,20 @@ Enabling license acceptance requires a license or a licenseUrl to be specified. 
                 using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true))
                 {
                     // Get raw filenames without un-escaping.
-                    var files = archive.Entries.Select(e => e.FullName).OrderBy(s => s).ToArray();
+                    var files = archive.Entries.Select(e => e.FullName).ToArray();
 
-                    // Linux sorts the first two in different order than Windows
-                    Assert.Contains<string>(@"[Content_Types].xml", files);
-                    Assert.Contains<string>(@"_rels/.rels", files);
+                    Assert.Equal(@"_rels/.rels", files[0]);
+                    Assert.Equal(@"test.nuspec", files[1]);
                     Assert.Equal(@"content/images/bread&butter.jpg", files[2]);
                     Assert.Equal(@"content/images/logo123?#78.png", files[3]);
                     Assert.Equal(@"lib/C#/test.dll", files[4]);
                     Assert.Equal(@"lib/name with spaces.dll", files[5]);
                     Assert.Equal(@"lib/regular.file.dll", files[6]);
 
-                    Assert.StartsWith(@"package/services/metadata/core-properties/", files[7]);
-                    Assert.EndsWith(@".psmdcp", files[7]);
+                    Assert.Equal(@"[Content_Types].xml", files[7]);
+                    Assert.StartsWith(@"package/services/metadata/core-properties/", files[8]);
+                    Assert.EndsWith(@".psmdcp", files[8]);
 
-                    Assert.Equal(@"test.nuspec", files[8]);
                 }
             }
         }
@@ -2771,17 +2815,14 @@ Enabling license acceptance requires a license or a licenseUrl to be specified. 
 
                 using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true))
                 {
-                    var files = archive.GetFiles().OrderBy(s => s).ToArray();
+                    var files = archive.GetFiles().ToArray();
 
-                    // Linux sorts the first two in different order than Windows
-                    Assert.Contains<string>(@"[Content_Types].xml", files);
-                    Assert.Contains<string>(@"_rels/.rels", files);
+                    Assert.Equal(@"_rels/.rels", files[0]);
+                    Assert.Equal(@"test.nuspec", files[1]);
                     Assert.Equal(@"myfile", files[2]);
-
-                    Assert.StartsWith(@"package/services/metadata/core-properties/", files[3]);
-                    Assert.EndsWith(@".psmdcp", files[3]);
-
-                    Assert.Equal(@"test.nuspec", files[4]);
+                    Assert.Equal(@"[Content_Types].xml", files[3]);
+                    Assert.StartsWith(@"package/services/metadata/core-properties/", files[4]);
+                    Assert.EndsWith(@".psmdcp", files[4]);
 
                     using (var contentTypesReader = new StreamReader(archive.Entries.Single(file => file.FullName == @"[Content_Types].xml").Open()))
                     {
@@ -2981,14 +3022,13 @@ Enabling license acceptance requires a license or a licenseUrl to be specified. 
 
                 using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true))
                 {
-                    var files = archive.GetFiles().OrderBy(s => s).ToArray();
+                    var files = archive.GetFiles().ToArray();
 
-                    // Linux sorts the first two in different order than Windows
-                    Assert.Contains<string>(@"[Content_Types].xml", files);
-                    Assert.Contains<string>(@"_rels/.rels", files);
-                    Assert.StartsWith(@"package/services/metadata/core-properties/", files[2]);
-                    Assert.Equal(@"test.nuspec", files[3]);
-                    Assert.Equal(outputFile, files[4]);
+                    Assert.Equal(@"_rels/.rels", files[0]);
+                    Assert.Equal(@"test.nuspec", files[1]);
+                    Assert.Equal(outputFile, files[2]);
+                    Assert.Equal(@"[Content_Types].xml", files[3]);
+                    Assert.StartsWith(@"package/services/metadata/core-properties/", files[4]);
                 }
             }
         }
@@ -3312,29 +3352,6 @@ Enabling license acceptance requires a license or a licenseUrl to be specified. 
 #pragma warning restore CS0618 // Type or member is obsolete
 
             return file.Object;
-        }
-
-        private IPackageFile CreatePackageFileOnPath(string path, DateTime lastWriteTime)
-        {
-            string directorypath = Path.GetDirectoryName(path);
-            if (!Directory.Exists(directorypath))
-            {
-                Directory.CreateDirectory(directorypath);
-            }
-
-            File.WriteAllText(path, string.Empty);
-            File.SetLastWriteTime(path, lastWriteTime);
-
-            using (MemoryStream ms = new MemoryStream())
-            using (FileStream fileStream = File.OpenRead(path))
-            {
-                fileStream.CopyTo(ms);
-                var file = new PhysicalPackageFile(ms)
-                {
-                    TargetPath = path
-                };
-                return file;
-            }
         }
 
         private Stream GetManifestStream(Stream packageStream)

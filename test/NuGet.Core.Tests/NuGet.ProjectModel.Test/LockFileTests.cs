@@ -847,13 +847,12 @@ namespace NuGet.ProjectModel.Test
             Assert.Equal(lockFile_1_2.GetHashCode(), lockFile_11_22.GetHashCode());
         }
 
-        [Theory]
-        [MemberData(nameof(LockFileParsingEnvironmentVariable.TestEnvironmentVariableReader), MemberType = typeof(LockFileParsingEnvironmentVariable))]
-        public void LockFile_GetTarget_WithNuGetFramework_ReturnsCorrectLockFileTarget(IEnvironmentVariableReader environmentVariableReader)
+        [Fact]
+        public void LockFile_GetTarget_WithNuGetFramework_ReturnsCorrectLockFileTarget()
         {
             // Arrange
             var expectedJson = ResourceTestUtility.GetResource("NuGet.ProjectModel.Test.compiler.resources.sample.assets.json", typeof(LockFileTests));
-            var lockFile = Parse(expectedJson, Path.GetTempPath(), environmentVariableReader);
+            var lockFile = Parse(expectedJson, Path.GetTempPath());
             NuGetFramework nuGetFramework = NuGetFramework.ParseComponents(".NETCoreApp,Version=v5.0", "Windows,Version=7.0");
 
             // Act
@@ -863,13 +862,12 @@ namespace NuGet.ProjectModel.Test
             target.TargetFramework.Should().Be(nuGetFramework);
         }
 
-        [Theory]
-        [MemberData(nameof(LockFileParsingEnvironmentVariable.TestEnvironmentVariableReader), MemberType = typeof(LockFileParsingEnvironmentVariable))]
-        public void LockFile_GetTarget_WithAlias_ReturnsCorrectLockFileTarget(IEnvironmentVariableReader environmentVariableReader)
+        [Fact]
+        public void LockFile_GetTarget_WithAlias_ReturnsCorrectLockFileTarget()
         {
             // Arrange
             var expectedJson = ResourceTestUtility.GetResource("NuGet.ProjectModel.Test.compiler.resources.sample.assets.json", typeof(LockFileTests));
-            var lockFile = Parse(expectedJson, Path.GetTempPath(), environmentVariableReader);
+            var lockFile = Parse(expectedJson, Path.GetTempPath());
             NuGetFramework nuGetFramework = NuGetFramework.ParseComponents(".NETCoreApp,Version=v5.0", "Windows,Version=7.0");
 
             // Act
@@ -879,13 +877,56 @@ namespace NuGet.ProjectModel.Test
             target.TargetFramework.Should().Be(nuGetFramework);
         }
 
-        private LockFile Parse(string lockFileContent, string path, IEnvironmentVariableReader environmentVariableReader)
+        [Fact]
+        public void LockFile_GetTarget_WithAliasAndSameFramework_ReturnsCorrectLockFileTarget()
+        {
+            // Arrange
+            NuGetFramework targetFramework = FrameworkConstants.CommonFrameworks.Net50;
+
+            LockFile lockFile = new LockFile()
+            {
+                Targets = new List<LockFileTarget>()
+                {
+                    new() {
+                        TargetFramework = FrameworkConstants.CommonFrameworks.Net50,
+                        TargetAlias = "net5.0"
+                    },
+                    new() {
+                        TargetFramework = FrameworkConstants.CommonFrameworks.Net50,
+                        TargetAlias = "net5.0-x64"
+                    },
+                    new() {
+                        TargetFramework = FrameworkConstants.CommonFrameworks.Net50,
+                        TargetAlias = "net5.0",
+                        RuntimeIdentifier = "win-x64"
+                    },
+                    new() {
+                        TargetFramework = FrameworkConstants.CommonFrameworks.Net50,
+                        TargetAlias = "net5.0-x64",
+                        RuntimeIdentifier = "win-x64"
+                    },
+                }
+            };
+
+            // Act && Assert
+            LockFileTarget target = lockFile.GetTarget("net5.0-x64", runtimeIdentifier: null);
+            target.TargetFramework.Should().Be(targetFramework);
+            target.RuntimeIdentifier.Should().BeNull();
+            target.TargetAlias.Should().Be("net5.0-x64");
+
+            LockFileTarget targetWithRid = lockFile.GetTarget("net5.0", runtimeIdentifier: "win-x64");
+            targetWithRid.TargetFramework.Should().Be(targetFramework);
+            targetWithRid.RuntimeIdentifier.Should().Be("win-x64");
+            targetWithRid.TargetAlias.Should().Be("net5.0");
+        }
+
+        private LockFile Parse(string lockFileContent, string path)
         {
             var reader = new LockFileFormat();
             byte[] byteArray = Encoding.UTF8.GetBytes(lockFileContent);
             using (var stream = new MemoryStream(byteArray))
             {
-                return reader.Read(stream, NullLogger.Instance, path, environmentVariableReader, true);
+                return reader.Read(stream, NullLogger.Instance, path);
             }
         }
     }

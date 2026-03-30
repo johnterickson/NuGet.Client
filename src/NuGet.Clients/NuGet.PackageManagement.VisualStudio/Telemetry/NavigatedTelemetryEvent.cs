@@ -22,6 +22,7 @@ namespace NuGet.PackageManagement.Telemetry
         internal const string SourcesCountPropertyName = "SourcesCount";
         internal const string IsGlobbingPropertyName = "IsGlobbing";
         internal const string IsUnifiedSettingsPropertyName = "IsUnifiedSettings";
+        internal const string IsPromptCancelledPropertyName = "IsPromptCancelled";
 
         internal const string AlternativePackageIdPropertyName = "AlternativePackageId";
 
@@ -72,6 +73,28 @@ namespace NuGet.PackageManagement.Telemetry
         }
 
         /// <summary>
+        /// Navigating from the Vulnerability InfoBar to the Manage Packages dialog.
+        /// </summary>
+        public static NavigatedTelemetryEvent CreateWithVulnerabilityInfoBarManagePackages()
+        {
+            NavigatedTelemetryEvent navigatedTelemetryEvent = new(NavigationType.Button, NavigationOrigin.VulnerabilityInfoBar_ManagePackages);
+            return navigatedTelemetryEvent;
+        }
+
+        /// <summary>
+        /// Navigating an External hyperlink from VS.
+        /// </summary>
+        /// <param name="hyperlinkType">Hyperlink origin</param>
+        public static NavigatedTelemetryEvent CreateWithExternalLink(HyperlinkType hyperlinkType)
+        {
+            NavigatedTelemetryEvent navigatedTelemetryEvent = new(NavigationType.Hyperlink, NavigationOrigin.PMUI_ExternalLink);
+
+            navigatedTelemetryEvent[HyperLinkTypePropertyName] = hyperlinkType;
+
+            return navigatedTelemetryEvent;
+        }
+
+        /// <summary>
         /// Navigating an External hyperlink from the PM UI.
         /// </summary>
         /// <param name="hyperlinkType">Hyperlink origin</param>
@@ -112,14 +135,17 @@ namespace NuGet.PackageManagement.Telemetry
             return navigatedTelemetryEvent;
         }
 
-        public static NavigatedTelemetryEvent CreateWithClearLocalsCommand(bool isUnifiedSettings)
+        public static NavigatedTelemetryEvent CreateWithClearLocalsCommand(bool isUnifiedSettings, bool? isPromptCancelled = null)
         {
             NavigationType navigationType = NavigationType.Button;
             NavigationOrigin navigationOrigin = NavigationOrigin.Options_LocalsCommand_ClearAll;
 
             NavigatedTelemetryEvent navigatedTelemetryEvent = new(navigationType, navigationOrigin);
             navigatedTelemetryEvent[IsUnifiedSettingsPropertyName] = isUnifiedSettings;
-
+            if (isUnifiedSettings && isPromptCancelled.HasValue)
+            {
+                navigatedTelemetryEvent[IsPromptCancelledPropertyName] = isPromptCancelled;
+            }
             return navigatedTelemetryEvent;
         }
     }

@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -112,6 +114,11 @@ namespace NuGet.PackageManagement.UI.Utility
             public ManagedNuGetSearchService(NuGetSearchServiceReconnector service)
             {
                 _parent = service;
+            }
+
+            public void ClearFromCache(string id, IReadOnlyCollection<PackageSourceContextInfo> packageSources, bool includePrerelease)
+            {
+                _parent._service.ClearFromCache(id, packageSources, includePrerelease);
             }
 
             public ValueTask<SearchResultContextInfo> ContinueSearchAsync(CancellationToken cancellationToken)

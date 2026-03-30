@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using NuGet.Frameworks;
@@ -52,7 +54,7 @@ namespace NuGet.PackageManagement.VisualStudio.Utility
             }
             else
             {
-                ProjectInstalledPackage newInstalledPackage = new ProjectInstalledPackage(projectLibrary.LibraryRange.VersionRange, new PackageIdentity(projectLibrary.Name, resolvedVersion));
+                ProjectInstalledPackage newInstalledPackage = new ProjectInstalledPackage(projectLibrary.LibraryRange.VersionRange ?? VersionRange.All, new PackageIdentity(projectLibrary.Name, resolvedVersion));
                 installedPackages.Add(projectLibrary.Name, newInstalledPackage);
             }
 

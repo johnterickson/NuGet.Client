@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections;
 using System.Linq;
@@ -57,8 +59,7 @@ namespace NuGet.Packaging
             return obj?.GetType()
                        .GetRuntimeProperties()
                        .Where(prop => prop.GetMethod != null && prop.GetMethod.IsPublic && !prop.GetMethod.IsStatic)
-                       .Select(prop => GetVersionFromPropertyInfo(obj, prop))
-                       .Max()
+                       .Max(prop => GetVersionFromPropertyInfo(obj, prop))
                       ?? DefaultVersion;
         }
 

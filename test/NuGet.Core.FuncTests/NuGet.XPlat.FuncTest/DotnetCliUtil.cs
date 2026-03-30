@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.IO;
 using System.Linq;
@@ -53,7 +55,7 @@ namespace NuGet.XPlat.FuncTest
                 Assert.True(Array.Exists(files, element => element == filename));
             }
 
-            Assert.Equal(files.Count(), TestFileNames.Length);
+            Assert.Equal(files.Length, TestFileNames.Length);
         }
 
         /// <summary>
@@ -144,7 +146,7 @@ project TFMs found: {string.Join(", ", compiledTfms.Keys.Select(k => k.ToString(
         public static void VerifyResultFailure(CommandRunnerResult result, string expectedErrorMessage)
         {
             result.ExitCode.Should().NotBe(0);
-            result.Output.Should().Contain(expectedErrorMessage);
+            result.AllOutput.Should().Contain(expectedErrorMessage);
         }
     }
 }

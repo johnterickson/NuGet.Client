@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -66,18 +68,6 @@ namespace NuGet.Credentials.Test
 
     internal sealed class PluginManagerMock : IDisposable
     {
-        public static bool IsDesktop
-        {
-            get
-            {
-#if IS_DESKTOP
-                return true;
-#else
-                return false;
-#endif
-            }
-        }
-
         private readonly Mock<IConnection> _connection;
         private readonly TestExpectation _expectations;
         private readonly Mock<PluginFactory> _factory;
@@ -250,7 +240,7 @@ namespace NuGet.Credentials.Test
             _pluginDiscoverer.Setup(x => x.DiscoverAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new[]
                     {
-                        new PluginDiscoveryResult(new PluginFile(pluginFilePath, new Lazy<PluginFileState>(() => pluginFileState), requiresDotnetHost: !IsDesktop))
+                        new PluginDiscoveryResult(new PluginFile(pluginFilePath, new Lazy<PluginFileState>(() => pluginFileState)))
                     });
         }
 

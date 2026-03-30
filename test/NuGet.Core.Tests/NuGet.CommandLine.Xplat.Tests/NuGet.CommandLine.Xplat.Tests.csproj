@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>$(NETCoreTargetFramework)</TargetFramework>
+    <TargetFramework>$(LatestNETCoreTargetFramework)</TargetFramework>
     <Description>Unit tests for NuGet.CommandLine.XPlat.</Description>
   </PropertyGroup>
 
@@ -13,7 +13,7 @@
     <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Build.Locator" />
-    <PackageReference Include="System.Memory" />
+    <PackageReference Include="Spectre.Console.Testing" />
     <PackageReference Include="System.CommandLine" />
   </ItemGroup>
 

@@ -1,11 +1,14 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using NuGet.Packaging.Core;
 using NuGet.Protocol;
 using NuGet.Versioning;
 
@@ -95,7 +98,12 @@ namespace Test.Utility
         /// <summary>
         /// Create a registration blob for a package
         /// </summary>
-        public static JObject CreatePackageRegistrationBlob(string serverUri, string id, IEnumerable<KeyValuePair<string, bool>> versionToListedMap)
+        public static JObject CreatePackageRegistrationBlob(
+            string serverUri,
+            string id,
+            IEnumerable<KeyValuePair<string, bool>> versionToListedMap,
+            ISet<PackageIdentity> deprecatedPackages,
+            List<(Uri, PackageVulnerabilitySeverity, VersionRange)> vulnerabilities)
         {
             var indexUrl = string.Format(CultureInfo.InvariantCulture,
                                     "{0}reg/{1}/index.json", serverUri, id);
@@ -132,13 +140,19 @@ namespace Test.Utility
             page.Add(new JProperty("items", items));
             foreach (var versionToListed in versionToListedMap)
             {
-                var item = GetPackageRegistrationItem(serverUri, id, version: versionToListed.Key, listed: versionToListed.Value, indexUrl);
+                var item = GetPackageRegistrationItem(serverUri,
+                    id,
+                    version: versionToListed.Key,
+                    listed: versionToListed.Value,
+                    isDeprecated: deprecatedPackages.Contains(new PackageIdentity(id, new NuGetVersion(versionToListed.Key))),
+                    indexUrl,
+                    vulnerabilities);
                 items.Add(item);
             }
             return regBlob;
         }
 
-        private static JObject GetPackageRegistrationItem(string serverUri, string id, string version, bool listed, string indexUrl)
+        private static JObject GetPackageRegistrationItem(string serverUri, string id, string version, bool listed, bool isDeprecated, string indexUrl, List<(Uri, PackageVulnerabilitySeverity, VersionRange)> vulnerabilities)
         {
             var item = new JObject();
 
@@ -156,6 +170,21 @@ namespace Test.Utility
 
             catalogEntry.Add(new JProperty("@id",
                 string.Format(CultureInfo.InvariantCulture, "{0}catalog/{1}/{2}.json", serverUri, id, version)));
+
+            if (isDeprecated)
+            {
+                catalogEntry.Add(GetDeprecatedEntry());
+            }
+
+            if (vulnerabilities != null && vulnerabilities.Count > 0)
+            {
+                var nugetVersion = new NuGetVersion(version);
+                var applicableVulnerabilities = vulnerabilities.Where(v => v.Item3.Satisfies(nugetVersion)).ToList();
+                if (applicableVulnerabilities.Count > 0)
+                {
+                    catalogEntry.Add(GetVulnerabilitiesEntry(applicableVulnerabilities));
+                }
+            }
 
             catalogEntry.Add(new JProperty("@type", "PackageDetails"));
             catalogEntry.Add(new JProperty("authors", "test"));
@@ -175,6 +204,34 @@ namespace Test.Utility
             catalogEntry.Add(new JProperty("tags", new JArray()));
 
             return item;
+
+            static JProperty GetDeprecatedEntry()
+            {
+                return new JProperty(
+                        "deprecation",
+                        new JObject
+                        {
+                            new JProperty("reasons", new JArray
+                            {
+                                "CriticalBugs"
+                            }),
+                            new JProperty("message", "This package is unstable and broken!")
+                        });
+            }
+
+            static JProperty GetVulnerabilitiesEntry(List<(Uri, PackageVulnerabilitySeverity, VersionRange)> applicableVulnerabilities)
+            {
+                var vulnerabilitiesArray = new JArray();
+                foreach (var vulnerability in applicableVulnerabilities)
+                {
+                    vulnerabilitiesArray.Add(new JObject
+                    {
+                        new JProperty("advisoryUrl", vulnerability.Item1.ToString()),
+                        new JProperty("severity", (int)vulnerability.Item2)
+                    });
+                }
+                return new JProperty("vulnerabilities", vulnerabilitiesArray);
+            }
         }
 
         public static void AddVulnerabilitiesResource(JObject index, string serverUri)

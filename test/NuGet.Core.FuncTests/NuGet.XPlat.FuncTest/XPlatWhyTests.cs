@@ -1,17 +1,20 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using NuGet.CommandLine.XPlat;
 using NuGet.CommandLine.XPlat.Commands.Why;
 using NuGet.Packaging;
 using NuGet.Test.Utility;
+using Spectre.Console.Testing;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace NuGet.XPlat.FuncTest
 {
-    [Collection("NuGet XPlat Test Collection")]
+    [Collection(XPlatCollection.Name)]
     public class XPlatWhyTests
     {
         private static readonly string ProjectName = "Test.Project.DotnetNugetWhy";
@@ -49,22 +52,35 @@ namespace NuGet.XPlat.FuncTest
             var addPackageCommandRunner = new AddPackageReferenceCommandRunner();
             var addPackageResult = await addPackageCommandRunner.ExecuteCommand(addPackageArgs, new MSBuildAPIUtility(logger));
 
+            var console = new TestConsole();
+            console.Width(100);
+
             var whyCommandArgs = new WhyCommandArgs(
                     project.ProjectPath,
                     packageY.Id,
                     [projectFramework],
-                    logger);
+                    console,
+                    CancellationToken.None);
 
             // Act
-            var result = WhyCommandRunner.ExecuteCommand(whyCommandArgs);
+            var result = await WhyCommandRunner.ExecuteCommand(whyCommandArgs);
 
             // Assert
-            var output = logger.ShowMessages();
+            var output = console.Output;
+
+            string[] expected =
+                [
+                "Project 'Test.Project.DotnetNugetWhy' has the following dependency graph(s) for 'PackageY':",
+                "",
+                "  [net472]                                                                                          ",
+                "  └── PackageX (v1.0.0)                                                                             ",
+                "      └── PackageY (v1.0.1)                                                                         ",
+                "",
+                ""
+                ];
 
             Assert.Equal(ExitCodes.Success, result);
-            Assert.Contains($"Project '{ProjectName}' has the following dependency graph(s) for '{packageY.Id}'", output);
-            Assert.Contains($"{packageX.Id} (v{packageX.Version})", output);
-            Assert.Contains($"{packageY.Id} (v{packageY.Version})", output);
+            output.Should().Be(string.Join("\n", expected));
         }
 
         [Fact]
@@ -91,27 +107,32 @@ namespace NuGet.XPlat.FuncTest
             var addPackageCommandRunner = new AddPackageReferenceCommandRunner();
             var addPackageResult = await addPackageCommandRunner.ExecuteCommand(addPackageArgs, new MSBuildAPIUtility(logger));
 
+            var console = new TestConsole();
+            console.Width(500);
+
             var whyCommandArgs = new WhyCommandArgs(
                     project.ProjectPath,
                     packageZ.Id,
                     [projectFramework],
-                    logger);
+                    console,
+                    CancellationToken.None);
 
             // Act
-            var result = WhyCommandRunner.ExecuteCommand(whyCommandArgs);
+            var result = await WhyCommandRunner.ExecuteCommand(whyCommandArgs);
 
             // Assert
-            var output = logger.ShowMessages();
+            var output = console.Output;
 
             Assert.Equal(ExitCodes.Success, result);
             Assert.Contains($"Project '{ProjectName}' does not have a dependency on '{packageZ.Id}'", output);
         }
 
         [Fact]
-        public void WhyCommand_ProjectDidNotRunRestore_Fails()
+        public async Task WhyCommand_ProjectDidNotRunRestore_Fails()
         {
             // Arrange
-            var logger = new TestCommandOutputLogger(_testOutputHelper);
+            var logger = new TestConsole();
+            logger.Width(500);
 
             var pathContext = new SimpleTestPathContext();
             var projectFramework = "net472";
@@ -128,45 +149,48 @@ namespace NuGet.XPlat.FuncTest
                     project.ProjectPath,
                     packageY.Id,
                     [projectFramework],
-                    logger);
+                    logger,
+                    CancellationToken.None);
 
             // Act
-            var result = WhyCommandRunner.ExecuteCommand(whyCommandArgs);
+            var result = await WhyCommandRunner.ExecuteCommand(whyCommandArgs);
 
             // Assert
-            var output = logger.ShowMessages();
+            var output = logger.Lines;
 
             Assert.Equal(ExitCodes.Success, result);
             Assert.Contains($"No assets file was found for `{project.ProjectPath}`. Please run restore before running this command.", output);
         }
 
         [Fact]
-        public void WhyCommand_EmptyProjectArgument_Fails()
+        public async Task WhyCommand_EmptyProjectArgument_Fails()
         {
             // Arrange
-            var logger = new TestCommandOutputLogger(_testOutputHelper);
+            var logger = new TestConsole();
+            logger.Width(500);
 
             var whyCommandArgs = new WhyCommandArgs(
                     "",
                     "PackageX",
                     [],
-                    logger);
+                    logger,
+                    CancellationToken.None);
 
             // Act
-            var result = WhyCommandRunner.ExecuteCommand(whyCommandArgs);
+            var result = await WhyCommandRunner.ExecuteCommand(whyCommandArgs);
 
             // Assert
-            var errorOutput = logger.ShowErrors();
+            var errorOutput = logger.Lines;
 
             Assert.Equal(ExitCodes.InvalidArguments, result);
-            Assert.Contains($"Unable to run 'dotnet nuget why'. The 'PROJECT|SOLUTION' argument cannot be empty.", errorOutput);
+            errorOutput.Should().Contain($"Unable to run 'dotnet nuget why'. The 'PROJECT|SOLUTION' argument cannot be empty.");
         }
 
         [Fact]
-        public void WhyCommand_EmptyPackageArgument_Fails()
+        public async Task WhyCommand_EmptyPackageArgument_Fails()
         {
             // Arrange
-            var logger = new TestCommandOutputLogger(_testOutputHelper);
+            var logger = new TestConsole();
 
             var pathContext = new SimpleTestPathContext();
             var projectFramework = "net472";
@@ -176,23 +200,25 @@ namespace NuGet.XPlat.FuncTest
                     project.ProjectPath,
                     "",
                     [],
-                    logger);
+                    logger,
+                    CancellationToken.None);
 
             // Act
-            var result = WhyCommandRunner.ExecuteCommand(whyCommandArgs);
+            var result = await WhyCommandRunner.ExecuteCommand(whyCommandArgs);
 
             // Assert
-            var errorOutput = logger.ShowErrors();
+            var errorOutput = logger.Lines;
 
             Assert.Equal(ExitCodes.InvalidArguments, result);
             Assert.Contains($"Unable to run 'dotnet nuget why'. The 'PACKAGE' argument cannot be empty.", errorOutput);
         }
 
         [Fact]
-        public void WhyCommand_InvalidProject_Fails()
+        public async Task WhyCommand_InvalidProject_Fails()
         {
             // Arrange
-            var logger = new TestCommandOutputLogger(_testOutputHelper);
+            var logger = new TestConsole();
+            logger.Width(500);
 
             string fakeProjectPath = "FakeProjectPath.csproj";
 
@@ -200,13 +226,14 @@ namespace NuGet.XPlat.FuncTest
                     fakeProjectPath,
                     "PackageX",
                     [],
-                    logger);
+                    logger,
+                    CancellationToken.None);
 
             // Act
-            var result = WhyCommandRunner.ExecuteCommand(whyCommandArgs);
+            var result = await WhyCommandRunner.ExecuteCommand(whyCommandArgs);
 
             // Assert
-            var errorOutput = logger.ShowErrors();
+            var errorOutput = logger.Lines;
 
             Assert.Equal(ExitCodes.InvalidArguments, result);
             Assert.Contains($"Unable to run 'dotnet nuget why'. Missing or invalid path '{fakeProjectPath}'. Please provide a path to a project, solution file, or directory.", errorOutput);
@@ -239,17 +266,21 @@ namespace NuGet.XPlat.FuncTest
             var addPackageCommandRunner = new AddPackageReferenceCommandRunner();
             var addPackageResult = await addPackageCommandRunner.ExecuteCommand(addPackageCommandArgs, new MSBuildAPIUtility(logger));
 
+            var console = new TestConsole();
+            console.Width(500);
+
             var whyCommandArgs = new WhyCommandArgs(
                     project.ProjectPath,
                     packageY.Id,
                     [inputFrameworksOption, projectFramework],
-                    logger);
+                    console,
+                    CancellationToken.None);
 
             // Act
-            var result = WhyCommandRunner.ExecuteCommand(whyCommandArgs);
+            var result = await WhyCommandRunner.ExecuteCommand(whyCommandArgs);
 
             // Assert
-            var output = logger.ShowMessages();
+            var output = console.Output;
 
             Assert.Equal(ExitCodes.Success, result);
             Assert.Contains($"The assets file '{project.AssetsFileOutputPath}' for project '{ProjectName}' does not contain a target for the specified input framework '{inputFrameworksOption}'.", output);

@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -27,8 +29,19 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages.ChildProcess
         /// <param name="testOutputHelper">An optional <see cref="ITestOutputHelper" /> to write output to.</param>
         /// <param name="timeoutRetryCount">An optional number of times to retry running the command if it times out. Defaults to 1.</param>
         /// <returns>A <see cref="CommandRunnerResult" /> containing details about the result of the running the executable including the exit code and console output.</returns>
-        public static CommandRunnerResult Run(string filename, string workingDirectory = null, string arguments = null, int timeOutInMilliseconds = 60000, Action<StreamWriter> inputAction = null, IDictionary<string, string> environmentVariables = null, ITestOutputHelper testOutputHelper = null, int timeoutRetryCount = 1)
+        public static CommandRunnerResult Run(string filename, string workingDirectory = null, string arguments = null, int timeOutInMilliseconds = 60000, Action<StreamWriter> inputAction = null, IReadOnlyDictionary<string, string> environmentVariables = null, ITestOutputHelper testOutputHelper = null, int timeoutRetryCount = 1)
         {
+            if (workingDirectory is null)
+            {
+                workingDirectory = Environment.CurrentDirectory;
+            }
+            workingDirectory = Path.GetFullPath(workingDirectory);
+
+            if (!Directory.Exists(workingDirectory))
+            {
+                throw new DirectoryNotFoundException($"The working directory '{workingDirectory}' does not exist.");
+            }
+
             return RetryRunner.RunWithRetries<CommandRunnerResult, TimeoutException>(() =>
             {
                 StringBuilder output = new();
@@ -40,7 +53,7 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages.ChildProcess
                     EnableRaisingEvents = true,
                     StartInfo = new ProcessStartInfo(Path.GetFullPath(filename), arguments)
                     {
-                        WorkingDirectory = Path.GetFullPath(workingDirectory ?? Environment.CurrentDirectory),
+                        WorkingDirectory = workingDirectory,
                         UseShellExecute = false,
                         RedirectStandardError = true,
                         RedirectStandardOutput = true,

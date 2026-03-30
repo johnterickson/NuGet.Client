@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -30,7 +32,10 @@ namespace NuGet.CommandLine.XPlat
             Verbosity = GetVerbosityFromOption(verbosity);
         }
 
-        public PackageSearchArgs() { }
+        public PackageSearchArgs()
+            : this(null, null, null, null)
+        {
+        }
 
         private int VerifyInt(string number, int defaultValue, string option)
         {

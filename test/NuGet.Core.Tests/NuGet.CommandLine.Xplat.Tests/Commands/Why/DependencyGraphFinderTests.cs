@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.Linq;
 using NuGet.CommandLine.XPlat.Commands.Why;
@@ -325,11 +327,17 @@ namespace NuGet.CommandLine.Xplat.Tests.Commands.Why
         {
             assetsFile.PackageSpec.FilePath = ConvertWindowsPathToUnix(assetsFile.PackageSpec.FilePath);
 
-            var projectLibraries = assetsFile.Libraries.Where(l => l.Type == "project");
-
-            foreach (var library in projectLibraries)
+            for (var i = 0; i < assetsFile.Libraries.Count; i++)
             {
-                library.Path = ConvertWindowsPathToUnix(library.Path);
+                var library = assetsFile.Libraries[i];
+                if (library.Type == "project")
+                {
+                    var newPath = ConvertWindowsPathToUnix(library.Path);
+                    if (newPath != library.Path)
+                    {
+                        assetsFile.Libraries[i] = library with { Path = newPath };
+                    }
+                }
             }
 
             var packageSpecTargets = assetsFile.PackageSpec.RestoreMetadata.TargetFrameworks;

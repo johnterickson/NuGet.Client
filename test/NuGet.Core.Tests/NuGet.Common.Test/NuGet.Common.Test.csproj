@@ -2,7 +2,6 @@
   <PropertyGroup>
     <TargetFrameworks>$(TargetFrameworksUnitTest)</TargetFrameworks>
     <Description>Unit tests for NuGet.Common.</Description>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,4 +12,5 @@
   <ItemGroup Label="NuGet Shared">
     <Compile Include="$(SharedDirectory)\NoAllocEnumerateExtensions.cs" />
   </ItemGroup>
+
 </Project>

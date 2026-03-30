@@ -5,6 +5,7 @@
 #nullable disable
 
 using System;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -15,8 +16,10 @@ namespace NuGet.Common
     {
         private const string DotNet = "dotnet";
         private const string DotNetExe = "dotnet.exe";
+#if IS_DESKTOP
         private const string Home = "HOME";
         private const string UserProfile = "USERPROFILE";
+#endif
 #if IS_CORECLR
         private const string DotNetHome = "DOTNET_CLI_HOME";
 #endif
@@ -24,6 +27,9 @@ namespace NuGet.Common
         private static readonly Lazy<string> _getHome = new Lazy<string>(() => GetHome());
 
         private static string _nuGetTempDirectory = null;
+
+        private static readonly ConcurrentDictionary<NuGetFolderPath, string> Cache = new ConcurrentDictionary<NuGetFolderPath, string>();
+
         internal static string NuGetTempDirectory
         {
             get { return _nuGetTempDirectory ??= GetNuGetTempDirectory(); }
@@ -63,6 +69,12 @@ namespace NuGet.Common
         }
 
         public static string GetFolderPath(NuGetFolderPath folder)
+        {
+            string path = Cache.GetOrAdd(folder, CalculateFolderPath);
+            return path;
+        }
+
+        private static string CalculateFolderPath(NuGetFolderPath folder)
         {
             switch (folder)
             {
@@ -306,21 +318,7 @@ namespace NuGet.Common
 #endif
         }
 
-        /// <summary>
-        /// Throw a helpful message if the required env vars are not set.
-        /// </summary>
-        private static string GetValueOrThrowMissingEnvVarsDotnet(Func<string> getValue, string home, string dotnetHome)
-        {
-            var value = getValue();
-
-            if (string.IsNullOrEmpty(value))
-            {
-                throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Strings.MissingRequiredEnvVarsDotnet, home, dotnetHome));
-            }
-
-            return value;
-        }
-
+#if IS_DESKTOP
         /// <summary>
         /// Throw a helpful message if a required env var is not set.
         /// </summary>
@@ -335,6 +333,7 @@ namespace NuGet.Common
 
             return value;
         }
+#endif
 
         public static string GetDotNetLocation()
         {

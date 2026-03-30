@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,12 +19,12 @@ using Xunit.Abstractions;
 
 namespace NuGet.XPlat.FuncTest
 {
-    [Collection("NuGet XPlat Test Collection")]
+    [Collection(XPlatCollection.Name)]
     public class XplatSignTests
     {
         private const string _invalidArgException = "Invalid value provided for '{0}'. The accepted values are {1}.";
         private readonly ITestOutputHelper _testOutputHelper;
-        private const string _sha1Hash = "89967D1DD995010B6C66AE24FF8E66885E6E03A8";
+        private const string Sha256Hash = "A591A6D40BF420404A011733CFB7B190D62C65BF0BCDA32B56C92B409B0F9DCA";
 
         public XplatSignTests(ITestOutputHelper testOutputHelper)
         {
@@ -91,7 +93,7 @@ namespace NuGet.XPlat.FuncTest
             // Arrange
             var packagePath = @"\\path\package.nupkg";
             var timestamper = "https://timestamper.test";
-            var certificateFingerprint = _sha1Hash;
+            var certificateFingerprint = Sha256Hash;
             var parsable = Enum.TryParse(storeName, ignoreCase: true, result: out StoreName parsedStoreName);
 
             SignCommandArgs(
@@ -116,7 +118,7 @@ namespace NuGet.XPlat.FuncTest
             // Arrange
             var packagePath = @"\\path\package.nupkg";
             var timestamper = "https://timestamper.test";
-            var certificateFingerprint = _sha1Hash;
+            var certificateFingerprint = Sha256Hash;
             var storeName = "random_store";
 
             SignCommandArgs(
@@ -146,7 +148,7 @@ namespace NuGet.XPlat.FuncTest
             // Arrange
             var packagePath = @"\\path\package.nupkg";
             var timestamper = "https://timestamper.test";
-            var certificateFingerprint = _sha1Hash;
+            var certificateFingerprint = Sha256Hash;
             var parsable = Enum.TryParse(storeLocation, ignoreCase: true, result: out StoreLocation parsedStoreLocation);
 
             SignCommandArgs(
@@ -172,7 +174,7 @@ namespace NuGet.XPlat.FuncTest
             // Arrange
             var packagePath = @"\\path\package.nupkg";
             var timestamper = "https://timestamper.test";
-            var certificateFingerprint = _sha1Hash;
+            var certificateFingerprint = Sha256Hash;
             var storeLocation = "random_location";
 
             SignCommandArgs(
@@ -312,7 +314,7 @@ namespace NuGet.XPlat.FuncTest
             // Arrange
             var packagePath = @"\\path\package.nupkg";
             var timestamper = "https://timestamper.test";
-            var certificateFingerprint = _sha1Hash;
+            var certificateFingerprint = Sha256Hash;
             var hashAlgorithm = "sha256";
             Enum.TryParse(hashAlgorithm, ignoreCase: true, result: out HashAlgorithmName parsedHashAlgorithm);
             var timestampHashAlgorithm = "sha512";
@@ -355,7 +357,7 @@ namespace NuGet.XPlat.FuncTest
             // Arrange
             var packagePath = @"\\path\package.nupkg";
             var timestamper = "https://timestamper.test";
-            var certificateSubjectName = _sha1Hash;
+            var certificateSubjectName = "test_cert_subject";
             var hashAlgorithm = "sha256";
             Enum.TryParse(hashAlgorithm, ignoreCase: true, result: out HashAlgorithmName parsedHashAlgorithm);
             var timestampHashAlgorithm = "sha512";
@@ -434,30 +436,8 @@ namespace NuGet.XPlat.FuncTest
                 });
         }
 
-        [Fact]
-        public void SignCommandArgParsing_LogsAWarningForInsecureCertificateFingerprint()
-        {
-            var packagePath = @"\\path\package.nupkg";
-            var timestamper = "https://timestamper.test";
-            var timestampHashAlgorithm = "sha512";
-            Enum.TryParse(timestampHashAlgorithm, ignoreCase: true, result: out HashAlgorithmName parsedTimestampHashAlgorithm);
-
-            SignCommandArgs(
-                (mockCommandRunner, testApp, getLogLevel, getParsedArg, logger) =>
-                {
-                    //Arrange
-                    var argList = new List<string>() { "sign", packagePath, "--certificate-fingerprint", "89967D1DD995010B6C66AE24FF8E66885E6E03A8", "--certificate-password", "password", "--timestamper", timestamper, "--timestamp-hash-algorithm", timestampHashAlgorithm };
-
-                    //Act
-                    testApp.Execute(argList.ToArray());
-
-                    //Assert
-                    Assert.Equal(expected: 1, actual: logger.Warnings);
-                    Assert.True(logger.WarningMessages.First().Contains(NuGetLogCode.NU3043.ToString()));
-                });
-        }
-
         [Theory]
+        [InlineData("89967D1DD995010B6C66AE24FF8E66885E6E03A8")] // 40 characters long SHA-1 hash
         [InlineData("89967D1DD995010B6C66AE24FF8E66885E6E03")] // 39 characters long not SHA-1 hash
         [InlineData("invalid-certificate-fingerprint")]
         public void SignCommandArgParsing_ThrowsAnExceptionForInvalidCertificateFingerprint(string certificateFingerprint)

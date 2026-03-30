@@ -1,12 +1,17 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Help;
+using System.CommandLine.Parsing;
 using System.IO;
+using System.Threading.Tasks;
 using Microsoft.Extensions.CommandLineUtils;
+using Spectre.Console;
 
 namespace NuGet.CommandLine.XPlat.Commands.Why
 {
@@ -20,9 +25,9 @@ namespace NuGet.CommandLine.XPlat.Commands.Why
             });
         }
 
-        internal static void Register(CliCommand rootCommand, Func<ILoggerWithColor> getLogger)
+        internal static void Register(Command rootCommand, IAnsiConsole console)
         {
-            Register(rootCommand, getLogger, WhyCommandRunner.ExecuteCommand);
+            Register(rootCommand, console, WhyCommandRunner.ExecuteCommand);
         }
 
         /// <summary>
@@ -30,26 +35,28 @@ namespace NuGet.CommandLine.XPlat.Commands.Why
         /// For now, this allows the dotnet CLI to invoke why directly, instead of running NuGet.CommandLine.XPlat as a child process.
         /// </summary>
         /// <param name="rootCommand">The <c>dotnet nuget</c> command handler, to add <c>why</c> to.</param>
-        public static void GetWhyCommand(CliCommand rootCommand)
+        public static void GetWhyCommand(Command rootCommand)
         {
-            Register(rootCommand, CommandOutputLogger.Create, WhyCommandRunner.ExecuteCommand);
+            Register(rootCommand,
+                Spectre.Console.AnsiConsole.Console,
+                WhyCommandRunner.ExecuteCommand);
         }
 
-        internal static void Register(CliCommand rootCommand, Func<ILoggerWithColor> getLogger, Func<WhyCommandArgs, int> action)
+        internal static void Register(Command rootCommand, IAnsiConsole console, Func<WhyCommandArgs, Task<int>> action)
         {
             var whyCommand = new DocumentedCommand("why", Strings.WhyCommand_Description, "https://aka.ms/dotnet/nuget/why");
 
-            CliArgument<string> path = new CliArgument<string>("PROJECT|SOLUTION")
+            Argument<string> path = new Argument<string>("PROJECT|SOLUTION")
             {
                 Description = Strings.WhyCommand_PathArgument_Description,
                 // We really want this to be zero or one, however, because this is the first argument, it doesn't work.
                 // Instead, we need to use a CustomParser to choose if the argument is the path, or the package.
-                // In order for the parser to tell us there's more than 1 argument available, we need to tell CliArgument
+                // In order for the parser to tell us there's more than 1 argument available, we need to tell Argument
                 // that it supports more than one, but then in the custom parser we'll make sure we only take at most 1.
                 Arity = ArgumentArity.ZeroOrMore,
                 CustomParser = ar =>
                 {
-                    if (ar.Tokens.Count > 1)
+                    if (HasPathArgument(ar))
                     {
                         var value = ar.Tokens[0];
                         ar.OnlyTake(1);
@@ -59,16 +66,28 @@ namespace NuGet.CommandLine.XPlat.Commands.Why
                     ar.OnlyTake(0);
                     var currentDirectory = Directory.GetCurrentDirectory();
                     return currentDirectory;
+
+                    bool HasPathArgument(ArgumentResult ar)
+                    {
+                        // If there's only one argument, it could be the path, or the package.
+                        if (ar.Tokens.Count == 1)
+                        {
+                            var value = ar.Tokens[0].Value;
+                            return File.Exists(value) || Directory.Exists(value);
+                        }
+
+                        return ar.Tokens.Count > 1;
+                    }
                 }
             };
 
-            CliArgument<string> package = new CliArgument<string>("PACKAGE")
+            Argument<string> package = new Argument<string>("PACKAGE")
             {
                 Description = Strings.WhyCommand_PackageArgument_Description,
                 Arity = ArgumentArity.ExactlyOne
             };
 
-            CliOption<List<string>> frameworks = new CliOption<List<string>>("--framework", "-f")
+            Option<List<string>> frameworks = new Option<List<string>>("--framework", "-f")
             {
                 Description = Strings.WhyCommand_FrameworksOption_Description,
                 Arity = ArgumentArity.OneOrMore
@@ -84,24 +103,23 @@ namespace NuGet.CommandLine.XPlat.Commands.Why
             whyCommand.Options.Add(frameworks);
             whyCommand.Options.Add(help);
 
-            whyCommand.SetAction((parseResult) =>
+            whyCommand.SetAction(async (parseResult, cancellationToken) =>
             {
-                ILoggerWithColor logger = getLogger();
-
                 try
                 {
                     var whyCommandArgs = new WhyCommandArgs(
-                        parseResult.GetValue(path),
-                        parseResult.GetValue(package),
-                        parseResult.GetValue(frameworks),
-                        logger);
+                        parseResult.GetValue(path)!,
+                        parseResult.GetValue(package)!,
+                        parseResult.GetValue(frameworks)!,
+                        console,
+                        cancellationToken);
 
-                    int exitCode = action(whyCommandArgs);
+                    int exitCode = await action(whyCommandArgs);
                     return exitCode;
                 }
                 catch (ArgumentException ex)
                 {
-                    logger.LogError(ex.Message);
+                    console.Markup($"[red]{ex.Message}[/]");
                     return ExitCodes.InvalidArguments;
                 }
             });

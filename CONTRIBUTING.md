@@ -1,5 +1,8 @@
 # Contributing
 
+This repo's official location is <https://github.com/NuGet/NuGet.Client>.
+The NuGet team does not accept pull requests in other locations, but security issues must follow the [security process](SECURITY.md).
+
 This project welcomes contributions and suggestions.
 Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution.
 For details, visit https://cla.dotnetfoundation.org/.
@@ -30,7 +33,7 @@ For more information, see the [.NET Foundation Code of Conduct](https://dotnetfo
     - Keep the pull request template, and link to an issue.
     - Use a meaningful PR title, not the auto-generated title based on the branch name.
     - All PRs created by someone outside the NuGet team will be assigned the `Community` label, and a team member will be assigned as the PR shepherd, who will be responsible for making sure the PR gets reviewed (even if they don't review it themselves), and periodically check the PR for progress.
-      - PRs from forks do not trigger CI automatically. Someone in the team needs to apply the "Approved for CI", which will build only the current commit. If changes are pushed to the branch, the "Approved for CI" label needs to be removed and re-applied.
+      - PRs from forks trigger the test pipeline automatically, but not the PrivateDev pipeline. Someone in the team needs to trigger the pipeline manually.
     - If the NuGet team requests changes and the PR author does not respond within 1 month, a reminder will be added. If no action is taken within 2 months of the reminder, the PR will be closed due to inactivity.
 1. _One-time_: Sign the contributor license agreement, if you haven't signed it before. The [.NET Foundation Bot](https://github.com/dnfclas) will comment on the pull request you just created and guide you on how to sign the CLA.
 1. Submit a doc pull request to the [docs.microsoft-com.nuget](https://github.com/NuGet/docs.microsoft.com-nuget/) repo, if this is a new feature or behavior change.
@@ -79,11 +82,11 @@ NuGet members may contribute directly to the main remote.
 
 1. Build with
 
-    `.\build.ps1 -SkipUnitTest`
+    `.\build.ps1`
 
    Or Build and Unit test with
 
-   `.\build.ps1`
+   `.\build.ps1 -RunUnitTests`
 
     > Note: You have to to run .\configure.ps1 and .\build.ps1 at least once in order for your build to succeed.
 
@@ -104,8 +107,8 @@ NuGet members may contribute directly to the main remote.
 
 ### Notable `build.ps1` switches
 
-- `-SkipUnitTest` - skips running unit tests.
-- `-Fast` - runs minimal incremental build. Skips end-to-end packaging step.
+- `-RunUnitTests` - Runs unit tests after building.
+- `-Clean` - cleans build artifacts without deleting files that configure.ps1 creates.
 
 > Reveal all script parameters and switches by running
   Get-Help .\build.ps1 -detailed

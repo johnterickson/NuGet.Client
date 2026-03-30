@@ -16,6 +16,9 @@ namespace NuGet.Tests.Apex.Daily
     [TestClass]
     public class NuGetConsoleTestCase : SharedVisualStudioHostTestClass
     {
+        private const string AndroidFeedName = "AndroidFeed";
+        private const string AndroidFeedUrl = "https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-android-a8cd27e4/nuget/v3/index.json";
+
         [DataTestMethod]
         [DataRow(ProjectTemplate.NetCoreConsoleApp)]
         [DataRow(ProjectTemplate.ConsoleApplication)]
@@ -69,7 +72,6 @@ namespace NuGet.Tests.Apex.Daily
 
                 using (var testContext = new ApexTestContext(VisualStudio, projectTemplate, Logger, addNetStandardFeeds: true, simpleTestPathContext: simpleTestPathContext))
                 {
-                    var solutionService = VisualStudio.Get<SolutionService>();
                     var nugetConsole = GetConsole(testContext.Project);
 
                     // Act
@@ -90,8 +92,8 @@ namespace NuGet.Tests.Apex.Daily
                     }
                     else
                     {
-                        CommonUtility.AssertPackageReferenceExists(VisualStudio, testContext.Project, packageName1, packageVersion2, Logger);
-                        CommonUtility.AssertPackageReferenceExists(VisualStudio, testContext.Project, packageName2, packageVersion4, Logger);
+                        CommonUtility.AssertPackageReferenceExists(testContext.Project, packageName1, packageVersion2, Logger);
+                        CommonUtility.AssertPackageReferenceExists(testContext.Project, packageName2, packageVersion4, Logger);
                     }
                     VisualStudio.AssertNuGetOutputDoesNotHaveErrors();
                     Assert.IsTrue(VisualStudio.HasNoErrorsInOutputWindows());
@@ -99,6 +101,7 @@ namespace NuGet.Tests.Apex.Daily
             }
         }
 
+        [Ignore("MAUI projects cause UAC prompt for the remainder of the test run, blocking all tests video recordings")]
         [DataTestMethod]
         [DynamicData(nameof(GetMauiTemplates), DynamicDataSourceType.Method)]
         [Timeout(DefaultTimeout)]
@@ -111,11 +114,11 @@ namespace NuGet.Tests.Apex.Daily
                 var v100 = "1.0.0";
                 await CommonUtility.CreatePackageInSourceAsync(simpleTestPathContext.PackageSource, packageName, v100);
                 simpleTestPathContext.Settings.AddSource(NuGetConstants.NuGetHostName, NuGetConstants.V3FeedUrl);
+                simpleTestPathContext.Settings.AddSource(AndroidFeedName, AndroidFeedUrl);
 
                 using (var testContext = new ApexTestContext(VisualStudio, projectTemplate, Logger, simpleTestPathContext: simpleTestPathContext))
                 {
                     VisualStudio.AssertNoErrors();
-                    var solutionService = VisualStudio.Get<SolutionService>();
                     testContext.SolutionService.Build();
 
                     // Act
@@ -133,6 +136,7 @@ namespace NuGet.Tests.Apex.Daily
             }
         }
 
+        [Ignore("MAUI projects cause UAC prompt for the remainder of the test run, blocking all tests video recordings")]
         [DataTestMethod]
         [DynamicData(nameof(GetMauiTemplates), DynamicDataSourceType.Method)]
         [Timeout(DefaultTimeout)]
@@ -148,11 +152,11 @@ namespace NuGet.Tests.Apex.Daily
                 await CommonUtility.CreatePackageInSourceAsync(simpleTestPathContext.PackageSource, packageName, v100);
                 await CommonUtility.CreatePackageInSourceAsync(simpleTestPathContext.PackageSource, packageName, v200);
                 simpleTestPathContext.Settings.AddSource(NuGetConstants.NuGetHostName, NuGetConstants.V3FeedUrl);
+                simpleTestPathContext.Settings.AddSource(AndroidFeedName, AndroidFeedUrl);
 
                 using (var testContext = new ApexTestContext(VisualStudio, projectTemplate, Logger, simpleTestPathContext: simpleTestPathContext))
                 {
                     VisualStudio.AssertNoErrors();
-                    var solutionService = VisualStudio.Get<SolutionService>();
                     testContext.SolutionService.Build();
 
                     // Act
@@ -174,6 +178,7 @@ namespace NuGet.Tests.Apex.Daily
             }
         }
 
+        [Ignore("MAUI projects cause UAC prompt for the remainder of the test run, blocking all tests video recordings")]
         [DataTestMethod]
         [DynamicData(nameof(GetMauiTemplates), DynamicDataSourceType.Method)]
         [Timeout(DefaultTimeout)]
@@ -187,11 +192,11 @@ namespace NuGet.Tests.Apex.Daily
 
                 await CommonUtility.CreatePackageInSourceAsync(simpleTestPathContext.PackageSource, PackageName, v100);
                 simpleTestPathContext.Settings.AddSource(NuGetConstants.NuGetHostName, NuGetConstants.V3FeedUrl);
+                simpleTestPathContext.Settings.AddSource(AndroidFeedName, AndroidFeedUrl);
 
                 using (var testContext = new ApexTestContext(VisualStudio, projectTemplate, Logger, simpleTestPathContext: simpleTestPathContext))
                 {
                     VisualStudio.AssertNoErrors();
-                    var solutionService = VisualStudio.Get<SolutionService>();
                     testContext.SolutionService.Build();
                     testContext.NuGetApexTestService.WaitForAutoRestore();
 
@@ -229,7 +234,6 @@ namespace NuGet.Tests.Apex.Daily
                 using (var testContext = new ApexTestContext(VisualStudio, projectTemplate, Logger, simpleTestPathContext: simpleTestPathContext))
                 {
                     VisualStudio.AssertNoErrors();
-                    var solutionService = VisualStudio.Get<SolutionService>();
                     testContext.SolutionService.Build();
 
                     // Act
@@ -264,7 +268,6 @@ namespace NuGet.Tests.Apex.Daily
                 using (var testContext = new ApexTestContext(VisualStudio, projectTemplate, Logger, simpleTestPathContext: simpleTestPathContext))
                 {
                     VisualStudio.AssertNoErrors();
-                    var solutionService = VisualStudio.Get<SolutionService>();
                     testContext.SolutionService.Build();
 
                     // Act
@@ -300,7 +303,6 @@ namespace NuGet.Tests.Apex.Daily
                 using (var testContext = new ApexTestContext(VisualStudio, projectTemplate, Logger, simpleTestPathContext: simpleTestPathContext))
                 {
                     VisualStudio.AssertNoErrors();
-                    var solutionService = VisualStudio.Get<SolutionService>();
                     testContext.SolutionService.Build();
 
                     // Act
@@ -336,7 +338,6 @@ namespace NuGet.Tests.Apex.Daily
 
                 using (var testContext = new ApexTestContext(VisualStudio, projectTemplate, Logger, addNetStandardFeeds: true, simpleTestPathContext: simpleTestPathContext))
                 {
-                    var solutionService = VisualStudio.Get<SolutionService>();
                     var nugetConsole = GetConsole(testContext.Project);
 
                     // Act
@@ -351,7 +352,7 @@ namespace NuGet.Tests.Apex.Daily
                     }
                     else
                     {
-                        CommonUtility.AssertPackageReferenceExists(VisualStudio, testContext.Project, packageName, v200, Logger);
+                        CommonUtility.AssertPackageReferenceExists(testContext.Project, packageName, v200, Logger);
                     }
                     VisualStudio.AssertNuGetOutputDoesNotHaveErrors();
                     Assert.IsTrue(VisualStudio.HasNoErrorsInOutputWindows());
@@ -367,7 +368,6 @@ namespace NuGet.Tests.Apex.Daily
             using (var testContext = new ApexTestContext(VisualStudio, projectTemplate, Logger))
             {
                 // Arrange
-                SolutionService solutionService = VisualStudio.Get<SolutionService>();
                 var nugetConsole = GetConsole(testContext.Project);
                 var source = NuGetConstants.V3FeedUrl;
 
@@ -408,7 +408,6 @@ namespace NuGet.Tests.Apex.Daily
 
                 using (var testContext = new ApexTestContext(VisualStudio, ProjectTemplate.NetCoreConsoleApp, Logger, addNetStandardFeeds: true, simpleTestPathContext: simpleTestPathContext))
                 {
-                    SolutionService solutionService = VisualStudio.Get<SolutionService>();
                     var nugetConsole = GetConsole(testContext.Project);
 
                     // Act
@@ -438,7 +437,6 @@ namespace NuGet.Tests.Apex.Daily
                 using (var testContext = new ApexTestContext(VisualStudio, ProjectTemplate.NetCoreConsoleApp, Logger, addNetStandardFeeds: true, simpleTestPathContext: simpleTestPathContext))
                 {
                     // Arrange
-                    SolutionService solutionService = VisualStudio.Get<SolutionService>();
                     var nugetConsole = GetConsole(testContext.Project);
 
                     nugetConsole.InstallPackageFromPMC(packageName, v100);
@@ -463,7 +461,6 @@ namespace NuGet.Tests.Apex.Daily
             using (var testContext = new ApexTestContext(VisualStudio, ProjectTemplate.ClassLibrary, Logger))
             {
                 // Arrange
-                SolutionService solutionService = VisualStudio.Get<SolutionService>();
                 var nugetConsole = GetConsole(testContext.Project);
 
                 //Act

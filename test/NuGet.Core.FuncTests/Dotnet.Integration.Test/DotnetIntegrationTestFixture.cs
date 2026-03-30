@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,9 +16,7 @@ using FluentAssertions;
 using Microsoft.Internal.NuGet.Testing.SignedPackages.ChildProcess;
 using NuGet.Commands;
 using NuGet.Common;
-using NuGet.Packaging.Core;
 using NuGet.Test.Utility;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace Dotnet.Integration.Test
@@ -49,8 +49,7 @@ namespace Dotnet.Integration.Test
             TestDotnetCli = Path.Combine(_cliDirectory, dotnetExecutableName);
 
             var sdkPath = Directory.EnumerateDirectories(Path.Combine(_cliDirectory, "sdk"))
-                            .Where(d => !string.Equals(Path.GetFileName(d), "NuGetFallbackFolder", StringComparison.OrdinalIgnoreCase))
-                            .Single();
+                .Single(d => !string.Equals(Path.GetFileName(d), "NuGetFallbackFolder", StringComparison.OrdinalIgnoreCase));
 
             SdkDirectory = new DirectoryInfo(sdkPath);
             MsBuildSdksPath = Path.Combine(sdkPath, "Sdks");
@@ -128,68 +127,6 @@ namespace Dotnet.Integration.Test
                 Path.Combine(workingDirectory, projectName + ".csproj"));
         }
 
-        internal void CreateDotnetToolProject(string solutionRoot, string projectName, string targetFramework, string rid, string packageSources = null, IList<PackageIdentity> packages = null, int timeOut = 60000)
-        {
-            var workingDirectory = Path.Combine(solutionRoot, projectName);
-            if (!Directory.Exists(workingDirectory))
-            {
-                Directory.CreateDirectory(workingDirectory);
-            }
-
-            var projectFileName = Path.Combine(workingDirectory, projectName + ".csproj");
-
-            packageSources ??= string.Empty;
-            var restorePackagesPath = Path.Combine(workingDirectory, "tools", "packages");
-            var restoreSolutionDirectory = workingDirectory;
-            var msbuildProjectExtensionsPath = Path.Combine(workingDirectory);
-            var packageReferences = string.Empty;
-
-            if (packages != null)
-            {
-                packageReferences = string.Join(Environment.NewLine, packages.Select(p => $@"        <PackageReference Include='{p.Id}' Version='{p.Version}'/>"));
-            }
-
-            var projectFile = $@"<Project>
-    <PropertyGroup>
-        <!-- Things that do change and before common props -->
-        <MSBuildProjectExtensionsPath>{msbuildProjectExtensionsPath}</MSBuildProjectExtensionsPath>
-    </PropertyGroup>
-    <!-- Import it via Sdk attribute for local testing -->
-    <Import Sdk='Microsoft.NET.Sdk' Project='Sdk.props'/>
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <RuntimeIdentifier>{rid}</RuntimeIdentifier>
-        <TargetFramework>{targetFramework}</TargetFramework>
-        <RestoreProjectStyle>DotnetToolReference</RestoreProjectStyle>
-        <!-- Things that do change -->
-        <RestoreSources>{packageSources}</RestoreSources>
-        <RestorePackagesPath>{restorePackagesPath}</RestorePackagesPath>
-        <RestoreSolutionDirectory>{restoreSolutionDirectory}</RestoreSolutionDirectory>
-        <!--Things that don't change -->
-        <RestoreAdditionalProjectSources/>
-        <RestoreAdditionalProjectFallbackFolders/>
-        <RestoreAdditionalProjectFallbackFoldersExcludes/>
-        <RestoreFallbackFolders>clear</RestoreFallbackFolders>
-        <CheckEolTargetFramework>false</CheckEolTargetFramework>
-        <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
-    </PropertyGroup>
-    <ItemGroup>
-{packageReferences}
-    </ItemGroup>
-    <Import Sdk='Microsoft.NET.Sdk' Project='Sdk.targets'/>
-</Project>";
-
-            try
-            {
-                File.WriteAllText(projectFileName, projectFile);
-            }
-            catch
-            {
-                // ignore
-            }
-            Assert.True(File.Exists(projectFileName));
-        }
-
         internal CommandRunnerResult RestoreToolProjectExpectFailure(string workingDirectory, string projectName, string args = "", ITestOutputHelper testOutputHelper = null)
             => RunDotnetExpectFailure(workingDirectory, $"restore {projectName}.csproj {args}", testOutputHelper: testOutputHelper);
 
@@ -203,10 +140,10 @@ namespace Dotnet.Integration.Test
             => RestoreProjectOrSolution(workingDirectory, $"{projectName}.csproj", args, expectSuccess: true, testOutputHelper: testOutputHelper);
 
         internal CommandRunnerResult RestoreSolutionExpectFailure(string workingDirectory, string solutionName, string args = "", ITestOutputHelper testOutputHelper = null)
-            => RestoreProjectOrSolution(workingDirectory, $"{solutionName}.sln", args, expectSuccess: false, testOutputHelper: testOutputHelper);
+            => RestoreProjectOrSolution(workingDirectory, $"{solutionName}.slnx", args, expectSuccess: false, testOutputHelper: testOutputHelper);
 
         internal CommandRunnerResult RestoreSolutionExpectSuccess(string workingDirectory, string solutionName, string args = "", ITestOutputHelper testOutputHelper = null)
-            => RestoreProjectOrSolution(workingDirectory, $"{solutionName}.sln", args, expectSuccess: true, testOutputHelper: testOutputHelper);
+            => RestoreProjectOrSolution(workingDirectory, $"{solutionName}.slnx", args, expectSuccess: true, testOutputHelper: testOutputHelper);
 
         private CommandRunnerResult RestoreProjectOrSolution(string workingDirectory, string fileName, string args, bool expectSuccess, ITestOutputHelper testOutputHelper = null)
             => RunDotnet(workingDirectory, $"restore {fileName} {args ?? string.Empty} -nodereuse:false", expectSuccess, testOutputHelper: testOutputHelper);
@@ -227,9 +164,9 @@ namespace Dotnet.Integration.Test
         /// <param name="args">The command-line arguments to pass to dotnet.</param>
         /// <param name="environmentVariables">An optional <see cref="IReadOnlyDictionary{TKey, TValue}" /> containing environment variables to use when executing the command.</param>
         internal CommandRunnerResult RunDotnetExpectFailure(string workingDirectory, string args = "", IReadOnlyDictionary<string, string> environmentVariables = null, ITestOutputHelper testOutputHelper = null)
-            => RunDotnet(workingDirectory, args, expectSuccess: false, environmentVariables);
+            => RunDotnet(workingDirectory, args, expectSuccess: false, environmentVariables, testOutputHelper);
 
-        private CommandRunnerResult RunDotnet(string workingDirectory, string args = "", bool expectSuccess = true, IReadOnlyDictionary<string, string> environmentVariables = null, ITestOutputHelper testOutputHelper = null)
+        internal CommandRunnerResult RunDotnet(string workingDirectory, string args = "", bool expectSuccess = true, IReadOnlyDictionary<string, string> environmentVariables = null, ITestOutputHelper testOutputHelper = null)
         {
             bool enableDiagnostics = CIDebug && !string.IsNullOrWhiteSpace(BinLogDirectory);
 
@@ -240,6 +177,13 @@ namespace Dotnet.Integration.Test
                 ["MSBuildSDKsPath"] = MsBuildSdksPath,
                 ["DOTNET_MULTILEVEL_LOOKUP"] = "0",
                 ["DOTNET_ROOT"] = _cliDirectory,
+                // We need to force-override this because otherwise the MSBuildExtensionsPath
+                // set from the _outer_ dotnet cli call (which could be any version) will override
+                // the one set by the _inner_ (test environment-specific) dotnet cli call we're about to make.
+                // We need to ensure that this points to the correct SDK directory because this value
+                // is used to locate many Tasks - especially those located by relative path or name.
+                ["MSBuildExtensionsPath"] = SdkDirectory.FullName,
+                ["PATH"] = $"{_cliDirectory}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}"
             };
 
             if (enableDiagnostics)
@@ -369,10 +313,10 @@ namespace Dotnet.Integration.Test
             => PackProjectOrSolution(workingDirectory, $"{projectName}.csproj", args, expectSuccess: true, nuspecOutputPath, configuration, testOutputHelper);
 
         internal CommandRunnerResult PackSolutionExpectFailure(string workingDirectory, string solutionName, string args = "", string nuspecOutputPath = "obj", string configuration = "Debug", ITestOutputHelper testOutputHelper = null)
-            => PackProjectOrSolution(workingDirectory, $"{solutionName}.sln", args, expectSuccess: false, nuspecOutputPath, configuration, testOutputHelper);
+            => PackProjectOrSolution(workingDirectory, $"{solutionName}.slnx", args, expectSuccess: false, nuspecOutputPath, configuration, testOutputHelper);
 
         internal CommandRunnerResult PackSolutionExpectSuccess(string workingDirectory, string solutionName, string args = "", string nuspecOutputPath = "obj", string configuration = "Debug", ITestOutputHelper testOutputHelper = null)
-            => PackProjectOrSolution(workingDirectory, $"{solutionName}.sln", args, expectSuccess: true, nuspecOutputPath, configuration, testOutputHelper);
+            => PackProjectOrSolution(workingDirectory, $"{solutionName}.slnx", args, expectSuccess: true, nuspecOutputPath, configuration, testOutputHelper);
 
         private CommandRunnerResult PackProjectOrSolution(string workingDirectory, string file, string args, bool expectSuccess, string nuspecOutputPath = "obj", string configuration = "Debug", ITestOutputHelper testOutputHelper = null)
         {
@@ -396,10 +340,10 @@ namespace Dotnet.Integration.Test
         }
 
         internal void BuildSolutionExpectFailure(string workingDirectory, string solutionName, string args = "", bool? appendRidToOutputPath = false, ITestOutputHelper testOutputHelper = null)
-            => BuildProjectOrSolution(workingDirectory, $"{solutionName}.sln", args, expectSuccess: false, appendRidToOutputPath, testOutputHelper);
+            => BuildProjectOrSolution(workingDirectory, $"{solutionName}.slnx", args, expectSuccess: false, appendRidToOutputPath, testOutputHelper);
 
         internal void BuildSolutionExpectSuccess(string workingDirectory, string solutionName, string args = "", bool? appendRidToOutputPath = false, ITestOutputHelper testOutputHelper = null)
-            => BuildProjectOrSolution(workingDirectory, $"{solutionName}.sln", args, expectSuccess: true, appendRidToOutputPath, testOutputHelper);
+            => BuildProjectOrSolution(workingDirectory, $"{solutionName}.slnx", args, expectSuccess: true, appendRidToOutputPath, testOutputHelper);
 
         private CommandRunnerResult BuildProjectOrSolution(string workingDirectory, string file, string args, bool expectSuccess = true, bool? appendRidToOutputPath = false, ITestOutputHelper testOutputHelper = null)
         {

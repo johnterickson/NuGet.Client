@@ -1,7 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#if IS_SIGNING_SUPPORTED
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -11,7 +12,6 @@ using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using NuGet.Common;
 using HashAlgorithmName = NuGet.Common.HashAlgorithmName;
-#endif
 
 namespace NuGet.Packaging.Signing
 {
@@ -20,7 +20,6 @@ namespace NuGet.Packaging.Signing
     /// </summary>
     public abstract class Signature : ISignature
     {
-#if IS_SIGNING_SUPPORTED
         private readonly Lazy<IReadOnlyList<Timestamp>> _timestamps;
 
         /// <summary>
@@ -426,6 +425,5 @@ namespace NuGet.Packaging.Signing
 
             return timestampList;
         }
-#endif
     }
 }

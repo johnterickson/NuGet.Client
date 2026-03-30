@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -8,6 +10,7 @@ using System.Linq;
 using System.Runtime.Caching;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Microsoft.ServiceHub.Framework;
 using Microsoft.ServiceHub.Framework.Services;
 using Microsoft.VisualStudio.ComponentModelHost;
@@ -187,6 +190,25 @@ namespace NuGet.PackageManagement.VisualStudio.Test
         }
 
         [Fact]
+        public async Task GetAllPackagesAsync_WhenExceptionCaught_ExposesInnerExceptionMessage()
+        {
+            // Arrange
+            using (NuGetPackageSearchService searchService = SetupSearchServiceThatThrowsAnException())
+            {
+                var ex = await Assert.ThrowsAsync<FatalProtocolException>(() => searchService.GetAllPackagesAsync(
+                    _projects,
+                    new List<PackageSourceContextInfo> { PackageSourceContextInfo.Create(_sourceRepository.PackageSource) },
+                    targetFrameworks: new List<string>() { "net45", "net5.0" },
+                    new SearchFilter(includePrerelease: true),
+                    NuGet.VisualStudio.Internal.Contracts.ItemFilter.All,
+                    It.IsAny<bool>(),
+                    CancellationToken.None).AsTask());
+
+                ex.Message.Should().Contain("Simulated HTTP source failure");
+            }
+        }
+
+        [Fact]
         public async Task GetPackageMetadataListAsync_WithValidArguments_ReturnsMatchingResults()
         {
             using (NuGetPackageSearchService searchService = SetupSearchService())
@@ -272,6 +294,38 @@ namespace NuGet.PackageManagement.VisualStudio.Test
 
                 Assert.Equal(60, result.Count);
                 Assert.True(result.Last().Version.Version.Equals(new Version("1.0.0.0")));
+            }
+        }
+
+        [Fact]
+        public void ClearFromCache_WhenPackageSearchMetadataMemoryCacheHasItem_ItemCleared()
+        {
+            using (NuGetPackageSearchService searchService = SetupSearchService())
+            {
+                IPackageSearchMetadata packageMetadata = PackageSearchMetadataBuilder.FromIdentity(new PackageIdentity("microsoft.extensions.logging.abstractions", NuGetVersion.Parse("5.0.0-rc.2.20475.5"))).Build();
+                IPackageSearchMetadata packageMetadataToRemove = PackageSearchMetadataBuilder.FromIdentity(new PackageIdentity("microsoft.extensions.test", NuGetVersion.Parse("5.0.0-rc.2.20475.5"))).Build();
+                var packageSources = new List<PackageSourceContextInfo> { PackageSourceContextInfo.Create(_sourceRepository.PackageSource) };
+                var metadataProvider = Mock.Of<IPackageMetadataProvider>();
+                CacheItemPolicy _cacheItemPolicy = new CacheItemPolicy
+                {
+                    SlidingExpiration = ObjectCache.NoSlidingExpiration,
+                    AbsoluteExpiration = ObjectCache.InfiniteAbsoluteExpiration,
+                };
+
+                string cacheId = PackageSearchMetadataCacheItem.GetCacheId(packageMetadata.Identity.Id, includePrerelease: true, packageSources);
+                var cacheEntry = new PackageSearchMetadataCacheItem(packageMetadata, metadataProvider);
+                NuGetPackageSearchService.PackageSearchMetadataMemoryCache.AddOrGetExisting(cacheId, cacheEntry, _cacheItemPolicy);
+
+                string cacheIdToRemove = PackageSearchMetadataCacheItem.GetCacheId(packageMetadataToRemove.Identity.Id, includePrerelease: true, packageSources);
+                var cacheEntryToRemove = new PackageSearchMetadataCacheItem(packageMetadataToRemove, metadataProvider);
+                NuGetPackageSearchService.PackageSearchMetadataMemoryCache.AddOrGetExisting(cacheIdToRemove, cacheEntryToRemove, _cacheItemPolicy);
+
+
+                searchService.ClearFromCache(packageMetadataToRemove.Identity.Id, packageSources, includePrerelease: true);
+
+                Assert.Equal(1, NuGetPackageSearchService.PackageSearchMetadataMemoryCache.Count());
+                Assert.Null(NuGetPackageSearchService.PackageSearchMetadataMemoryCache.Get(cacheIdToRemove));
+                Assert.NotNull(NuGetPackageSearchService.PackageSearchMetadataMemoryCache.Get(cacheId));
             }
         }
 
@@ -405,16 +459,39 @@ namespace NuGet.PackageManagement.VisualStudio.Test
             Assert.IsNotType<RecommenderPackageFeed>(packageFeed);
         }
 
-        private NuGetPackageSearchService SetupSearchService()
+        private ISourceRepositoryProvider SetupSourceRepositoryProvider()
         {
-            ClearSearchCache();
-
             var packageSourceProvider = new Mock<IPackageSourceProvider>();
             packageSourceProvider.Setup(x => x.LoadPackageSources()).Returns(new List<PackageSource> { _sourceRepository.PackageSource });
             var sourceRepositoryProvider = new Mock<ISourceRepositoryProvider>();
             sourceRepositoryProvider.Setup(x => x.CreateRepository(It.IsAny<PackageSource>())).Returns(_sourceRepository);
             sourceRepositoryProvider.Setup(x => x.CreateRepository(It.IsAny<PackageSource>(), It.IsAny<FeedType>())).Returns(_sourceRepository);
             sourceRepositoryProvider.SetupGet(x => x.PackageSourceProvider).Returns(packageSourceProvider.Object);
+            return sourceRepositoryProvider.Object;
+        }
+
+        private NuGetPackageSearchService SetupSearchService()
+        {
+            ISourceRepositoryProvider sourceRepositoryProvider = SetupSourceRepositoryProvider();
+            var sharedState = new SharedServiceState(sourceRepositoryProvider);
+            return SetupSearchServiceCore(sharedState, sourceRepositoryProvider);
+        }
+
+        private NuGetPackageSearchService SetupSearchServiceThatThrowsAnException()
+        {
+            var sharedServiceStateMock = new Mock<ISharedServiceState>();
+            sharedServiceStateMock.Setup(x => x.GetRepositoriesAsync(It.IsAny<IReadOnlyCollection<PackageSourceContextInfo>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new FatalProtocolException(
+                "Fatal protocol error",
+                new HttpSourceException("Simulated HTTP source failure")
+            ));
+            return SetupSearchServiceCore(sharedServiceStateMock.Object, SetupSourceRepositoryProvider());
+        }
+
+        private NuGetPackageSearchService SetupSearchServiceCore(ISharedServiceState sharedState, ISourceRepositoryProvider sourceRepositoryProvider)
+        {
+            ClearSearchCache();
+
             var solutionManager = new Mock<IVsSolutionManager>();
             solutionManager.SetupGet(x => x.SolutionDirectory).Returns("z:\\SomeRandomPath");
             var settings = new Mock<ISettings>();
@@ -424,7 +501,7 @@ namespace NuGet.PackageManagement.VisualStudio.Test
             _componentModel.Setup(x => x.GetService<IVsSolutionManager>()).Returns(solutionManager.Object);
             _componentModel.Setup(x => x.GetService<ISolutionManager>()).Returns(solutionManager.Object);
             _componentModel.Setup(x => x.GetService<ISettings>()).Returns(settings.Object);
-            _componentModel.Setup(x => x.GetService<ISourceRepositoryProvider>()).Returns(sourceRepositoryProvider.Object);
+            _componentModel.Setup(x => x.GetService<ISourceRepositoryProvider>()).Returns(sourceRepositoryProvider);
             _componentModel.Setup(x => x.GetService<INuGetProjectContext>()).Returns(new Mock<INuGetProjectContext>().Object);
             _componentModel.Setup(x => x.GetService<IRestoreProgressReporter>()).Returns(new Mock<IRestoreProgressReporter>().Object);
 
@@ -434,8 +511,6 @@ namespace NuGet.PackageManagement.VisualStudio.Test
             var serviceActivationOptions = default(ServiceActivationOptions);
             var serviceBroker = new Mock<IServiceBroker>();
             var authorizationService = new AuthorizationServiceClient(Mock.Of<IAuthorizationService>());
-
-            var sharedState = new SharedServiceState(sourceRepositoryProvider.Object);
 
             var projectManagerService = new Mock<INuGetProjectManagerService>();
 

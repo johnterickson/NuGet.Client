@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -98,8 +100,8 @@ namespace NuGet.PackageManagement.Test.NuGetPackageManagerTests
                     Assert.Equal(1, packagesInPackagesConfig.Count);
 
                     // Check batch events data
-                    Assert.True(batchStartIds.Count == 1);
-                    Assert.True(batchEndIds.Count == 1);
+                    Assert.Equal(1, batchStartIds.Count);
+                    Assert.Equal(1, batchEndIds.Count);
                     Assert.Equal(batchStartIds[0], batchEndIds[0]);
                     Assert.Equal("testA", projectName);
                 }
@@ -165,8 +167,8 @@ namespace NuGet.PackageManagement.Test.NuGetPackageManagerTests
                     Assert.Equal(1, packagesInPackagesConfig.Count);
 
                     // Check batch events data
-                    Assert.True(batchStartIds.Count == 1);
-                    Assert.True(batchEndIds.Count == 1);
+                    Assert.Equal(1, batchStartIds.Count);
+                    Assert.Equal(1, batchEndIds.Count);
                     Assert.Equal(batchStartIds[0], batchEndIds[0]);
 
                     // Update
@@ -184,8 +186,8 @@ namespace NuGet.PackageManagement.Test.NuGetPackageManagerTests
                     Assert.Equal(1, packagesInPackagesConfig.Count);
 
                     // Check batch events data
-                    Assert.True(batchStartIds.Count == 2);
-                    Assert.True(batchEndIds.Count == 2);
+                    Assert.Equal(2, batchStartIds.Count);
+                    Assert.Equal(2, batchEndIds.Count);
                     Assert.Equal(batchStartIds[1], batchEndIds[1]);
                     Assert.NotEqual(batchStartIds[0], batchStartIds[1]);
                 }
@@ -249,8 +251,8 @@ namespace NuGet.PackageManagement.Test.NuGetPackageManagerTests
                     // Assert
 
                     // Check batch events data
-                    Assert.True(batchStartIds.Count == 2);
-                    Assert.True(batchEndIds.Count == 2);
+                    Assert.Equal(2, batchStartIds.Count);
+                    Assert.Equal(2, batchEndIds.Count);
                     Assert.Equal(batchStartIds[0], batchEndIds[0]);
                     Assert.Equal(batchStartIds[1], batchEndIds[1]);
                     Assert.NotEqual(batchStartIds[0], batchStartIds[1]);
@@ -325,8 +327,8 @@ namespace NuGet.PackageManagement.Test.NuGetPackageManagerTests
 
                     //Assert
                     // Check batch events data
-                    Assert.True(batchStartIds.Count == 1);
-                    Assert.True(batchEndIds.Count == 1);
+                    Assert.Equal(1, batchStartIds.Count);
+                    Assert.Equal(1, batchEndIds.Count);
                     Assert.Equal(batchStartIds[0], batchEndIds[0]);
                     Assert.Equal("testA", projectName);
                 }
@@ -402,12 +404,12 @@ namespace NuGet.PackageManagement.Test.NuGetPackageManagerTests
                     Assert.Equal(1, packagesInPackagesConfigB.Count);
 
                     // Check batch events data
-                    Assert.True(batchStartIds.Count == 2);
-                    Assert.True(batchEndIds.Count == 2);
+                    Assert.Equal(2, batchStartIds.Count);
+                    Assert.Equal(2, batchEndIds.Count);
                     Assert.Equal(batchStartIds[0], batchEndIds[0]);
                     Assert.Equal(batchStartIds[1], batchEndIds[1]);
                     Assert.NotEqual(batchStartIds[0], batchStartIds[1]);
-                    Assert.True(projectNames.Count == 2);
+                    Assert.Equal(2, projectNames.Count);
                     Assert.Equal("testA", projectNames[0]);
                     Assert.Equal("testB", projectNames[1]);
                 }
@@ -467,8 +469,8 @@ namespace NuGet.PackageManagement.Test.NuGetPackageManagerTests
                     Assert.Equal(0, packagesInPackagesConfig.Count);
 
                     // Check batch events data
-                    Assert.True(batchStartIds.Count == 1);
-                    Assert.True(batchEndIds.Count == 1);
+                    Assert.Equal(1, batchStartIds.Count);
+                    Assert.Equal(1, batchEndIds.Count);
                     Assert.Equal(batchStartIds[0], batchEndIds[0]);
                 }
             }
@@ -536,8 +538,8 @@ namespace NuGet.PackageManagement.Test.NuGetPackageManagerTests
                     Assert.NotNull(exception);
 
                     // Check batch events data
-                    Assert.True(batchStartIds.Count == 1);
-                    Assert.True(batchEndIds.Count == 1);
+                    Assert.Equal(1, batchStartIds.Count);
+                    Assert.Equal(1, batchEndIds.Count);
                     Assert.Equal(batchStartIds[0], batchEndIds[0]);
                 }
             }
@@ -607,8 +609,8 @@ namespace NuGet.PackageManagement.Test.NuGetPackageManagerTests
                     Assert.NotNull(exception);
 
                     // Check batch events data
-                    Assert.True(batchStartIds.Count == 0);
-                    Assert.True(batchEndIds.Count == 0);
+                    Assert.Equal(0, batchStartIds.Count);
+                    Assert.Equal(0, batchEndIds.Count);
 
                 }
             }
@@ -677,20 +679,20 @@ namespace NuGet.PackageManagement.Test.NuGetPackageManagerTests
                     Assert.NotNull(exception);
 
                     // Check batch events data
-                    Assert.True(batchStartIds.Count == 1);
-                    Assert.True(batchEndIds.Count == 1);
+                    Assert.Equal(1, batchStartIds.Count);
+                    Assert.Equal(1, batchEndIds.Count);
                     Assert.Equal(batchStartIds[0], batchEndIds[0]);
                 }
             }
         }
 
-        [Fact]
+        [Fact(Skip = "https://github.com/NuGet/Home/issues/10212")]
         public async Task InstallPackage_BuildIntegratedProject_BatchEvent_NotRaised()
         {
             // Arrange
             var sourceRepositoryProvider = TestSourceRepositoryUtility.CreateV3OnlySourceRepositoryProvider();
             using (var settingsdir = TestDirectory.Create())
-            using (var testSolutionManager = new TestSolutionManager())
+            using (var testSolutionManager = new TestVSSolutionManager())
             {
                 var Settings = new Settings(settingsdir);
                 foreach (var source in sourceRepositoryProvider.GetRepositories())
@@ -734,8 +736,8 @@ namespace NuGet.PackageManagement.Test.NuGetPackageManagerTests
 
                 // Assert
                 // Check batch events data
-                Assert.True(batchStartIds.Count == 0);
-                Assert.True(batchEndIds.Count == 0);
+                Assert.Equal(0, batchStartIds.Count);
+                Assert.Equal(0, batchEndIds.Count);
             }
         }
 

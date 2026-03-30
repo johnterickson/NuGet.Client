@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -60,7 +62,6 @@ namespace NuGet.Commands
             var restoreSpecs = new HashSet<string>(uniqueNameComparer);
             var validForRestore = new HashSet<string>(uniqueNameComparer);
             var projectPathLookup = new Dictionary<string, string>(uniqueNameComparer);
-            var toolItems = new List<IMSBuildItem>();
 
             // Sort items and add restore specs
             foreach (var item in items)
@@ -103,10 +104,7 @@ namespace NuGet.Commands
                 }
 
                 if (spec.RestoreMetadata.ProjectStyle == ProjectStyle.PackageReference
-                    || spec.RestoreMetadata.ProjectStyle == ProjectStyle.ProjectJson
-                    || spec.RestoreMetadata.ProjectStyle == ProjectStyle.DotnetCliTool
-                    || spec.RestoreMetadata.ProjectStyle == ProjectStyle.Standalone
-                    || spec.RestoreMetadata.ProjectStyle == ProjectStyle.DotnetToolReference)
+                    || spec.RestoreMetadata.ProjectStyle == ProjectStyle.DotnetCliTool)
                 {
                     validForRestore.Add(spec.RestoreMetadata.ProjectUniqueName);
                 }
@@ -177,16 +175,8 @@ namespace NuGet.Commands
 
                 (bool isCentralPackageManagementEnabled, bool isCentralPackageVersionOverrideDisabled, bool isCentralPackageTransitivePinningEnabled, bool isCentralPackageFloatingVersionsEnabled) = GetCentralPackageManagementSettings(specItem, restoreType);
 
-                // Get base spec
-                if (restoreType == ProjectStyle.ProjectJson)
-                {
-                    result = GetProjectJsonSpec(specItem);
-                }
-                else
-                {
-                    // Read msbuild data for PR and related projects
-                    result = GetBaseSpec(specItem, restoreType, items);
-                }
+                // Read msbuild data for PR and related projects
+                result = GetBaseSpec(specItem, restoreType, items);
 
                 // Applies to all types
                 result.RestoreMetadata.ProjectStyle = restoreType;
@@ -204,10 +194,7 @@ namespace NuGet.Commands
                 AddProjectReferences(result, items);
 
                 if (restoreType == ProjectStyle.PackageReference
-                    || restoreType == ProjectStyle.Standalone
                     || restoreType == ProjectStyle.DotnetCliTool
-                    || restoreType == ProjectStyle.ProjectJson
-                    || restoreType == ProjectStyle.DotnetToolReference
                     || restoreType == ProjectStyle.PackagesConfig)
                 {
 
@@ -234,9 +221,7 @@ namespace NuGet.Commands
 
                 // Read package references for netcore, tools, and standalone
                 if (restoreType == ProjectStyle.PackageReference
-                    || restoreType == ProjectStyle.Standalone
-                    || restoreType == ProjectStyle.DotnetCliTool
-                    || restoreType == ProjectStyle.DotnetToolReference)
+                    || restoreType == ProjectStyle.DotnetCliTool)
                 {
                     AddPackageReferences(result, items, isCentralPackageManagementEnabled);
                     AddPackageDownloads(result, items);
@@ -251,9 +236,7 @@ namespace NuGet.Commands
                                     tfi.FrameworkName.GetShortFolderName()));
                 }
 
-                if (restoreType == ProjectStyle.PackageReference
-                    || restoreType == ProjectStyle.Standalone
-                    || restoreType == ProjectStyle.DotnetToolReference)
+                if (restoreType == ProjectStyle.PackageReference)
                 {
                     // Set project version
                     result.Version = GetVersion(specItem);
@@ -282,7 +265,7 @@ namespace NuGet.Commands
                     result.RestoreMetadata.RestoreLockProperties = GetRestoreLockProperties(specItem);
 
                     // NuGet audit properties
-                    result.RestoreMetadata.RestoreAuditProperties = GetRestoreAuditProperties(specItem, GetAuditSuppressions(items));
+                    result.RestoreMetadata.RestoreAuditProperties = GetRestoreAuditProperties(specItem, items, GetAuditSuppressions(items));
                 }
 
                 if (restoreType == ProjectStyle.PackagesConfig)
@@ -300,13 +283,7 @@ namespace NuGet.Commands
                         );
                     }
                     pcRestoreMetadata.RestoreLockProperties = GetRestoreLockProperties(specItem);
-                    pcRestoreMetadata.RestoreAuditProperties = GetRestoreAuditProperties(specItem, GetAuditSuppressions(items));
-                }
-
-                if (restoreType == ProjectStyle.ProjectJson)
-                {
-                    // Check runtime assets by default for project.json
-                    result.RestoreMetadata.ValidateRuntimeAssets = true;
+                    pcRestoreMetadata.RestoreAuditProperties = GetRestoreAuditProperties(specItem, items, GetAuditSuppressions(items));
                 }
 
                 result.RestoreMetadata.CentralPackageVersionsEnabled = isCentralPackageManagementEnabled;
@@ -484,9 +461,7 @@ namespace NuGet.Commands
                 bool assetTargetFallback = false;
                 bool warn = false;
 
-                if (restoreType == ProjectStyle.PackageReference ||
-                    restoreType == ProjectStyle.Standalone ||
-                    restoreType == ProjectStyle.DotnetToolReference)
+                if (restoreType == ProjectStyle.PackageReference)
                 {
                     var packageTargetFallback = MSBuildStringUtility.Split(item.GetProperty("PackageTargetFallback"))
                         .Select(NuGetFramework.Parse)
@@ -643,8 +618,7 @@ namespace NuGet.Commands
             var frameworkInfo = spec.TargetFrameworks[index];
             var dependencies = frameworkInfo.Dependencies;
 
-            if (!spec.Dependencies
-                            .Concat(dependencies)
+            if (!dependencies
                             .Select(d => d.Name)
                             .Contains(dependency.Name, StringComparer.OrdinalIgnoreCase))
             {
@@ -734,12 +708,25 @@ namespace NuGet.Commands
                 prunePackageReferences.Add(targetFramework.TargetAlias, new Dictionary<string, PrunePackageReference>(StringComparer.OrdinalIgnoreCase));
             }
 
-            foreach (var item in GetItemByType(items, "TargetFrameworkInformation"))
+            List<IMSBuildItem> targetFrameworkInfos = GetItemByType(items, "TargetFrameworkInformation").ToList();
+            bool isPruningEnabledGlobally = false;
+            foreach (var item in targetFrameworkInfos)
+            {
+                if (IsPropertyTrue(item, "RestorePackagePruningDefault"))
+                {
+                    isPruningEnabledGlobally = true;
+                    break;
+                }
+            }
+
+            foreach (var item in targetFrameworkInfos)
             {
                 var tfm = item.GetProperty("TargetFramework") ?? string.Empty;
 
-                bool enabled = IsPropertyTrue(item, "RestoreEnablePackagePruning");
-                isPruningEnabled[tfm] = enabled;
+                bool? restoreEnablePackagePruning = MSBuildStringUtility.GetBooleanOrNull(item.GetProperty("RestoreEnablePackagePruning"));
+                bool isPackagePruningEnabled = restoreEnablePackagePruning == null ? isPruningEnabledGlobally : restoreEnablePackagePruning == true;
+
+                isPruningEnabled[tfm] = isPackagePruningEnabled;
             }
 
             foreach (var item in GetItemByType(items, "PrunePackageReference"))
@@ -889,22 +876,6 @@ namespace NuGet.Commands
             return defaultValue;
         }
 
-        private static PackageSpec GetProjectJsonSpec(IMSBuildItem specItem)
-        {
-            PackageSpec result;
-            var projectPath = specItem.GetProperty("ProjectPath");
-            var projectName = Path.GetFileNameWithoutExtension(projectPath);
-            var projectJsonPath = specItem.GetProperty("ProjectJsonPath");
-
-            // Read project.json
-            result = JsonPackageSpecReader.GetPackageSpec(projectName, projectJsonPath);
-
-            result.RestoreMetadata = new ProjectRestoreMetadata();
-            result.RestoreMetadata.ProjectJsonPath = projectJsonPath;
-            result.RestoreMetadata.ProjectName = projectName;
-            return result;
-        }
-
         private static PackageSpec GetBaseSpec(IMSBuildItem specItem, ProjectStyle projectStyle, IEnumerable<IMSBuildItem> items)
         {
             var spec = new PackageSpec();
@@ -1020,11 +991,11 @@ namespace NuGet.Commands
                 IsPropertyTrue(specItem, "RestoreLockedMode"));
         }
 
-        public static RestoreAuditProperties GetRestoreAuditProperties(IMSBuildItem specItem, HashSet<string> suppressionItems)
+        public static RestoreAuditProperties GetRestoreAuditProperties(IMSBuildItem specItem, IEnumerable<IMSBuildItem> allItems, HashSet<string> suppressionItems)
         {
             string enableAudit = specItem.GetProperty("NuGetAudit");
             string auditLevel = specItem.GetProperty("NuGetAuditLevel");
-            string auditMode = specItem.GetProperty("NuGetAuditMode");
+            string auditMode = GetAuditMode(specItem, allItems);
 
             if (enableAudit != null || auditLevel != null || auditMode != null
                 || (suppressionItems != null && suppressionItems.Count > 0))
@@ -1039,6 +1010,25 @@ namespace NuGet.Commands
             }
 
             return null;
+
+            // We want to set NuGetAuditMode to "all" if a multi-targeting project targets .NET 10 or higher.
+            // However, that can only be done by an "inner build" evaulation, but we read other audit settings
+            // from the project evaluation, not inner-builds. So, check the inner builds if any TFM sets mode
+            // to "all", otherwise use the project's "outer build" mode.
+            string GetAuditMode(IMSBuildItem project, IEnumerable<IMSBuildItem> tfms)
+            {
+                foreach (var item in tfms.NoAllocEnumerate())
+                {
+                    string auditMode = item.GetProperty("NuGetAuditMode");
+                    if (string.Equals(auditMode, "all", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return auditMode;
+                    }
+                }
+
+                string projectAuditMode = project.GetProperty("NuGetAuditMode");
+                return projectAuditMode;
+            }
         }
 
         public static NuGetVersion GetSdkAnalysisLevel(string sdkAnalysisLevel)

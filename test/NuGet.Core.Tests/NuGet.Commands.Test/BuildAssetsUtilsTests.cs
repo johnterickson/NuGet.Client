@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -664,6 +666,11 @@ namespace NuGet.Commands.Test
                     ""frameworks"": {
                         ""netcoreapp1.0"": {
                             ""dependencies"": {
+                                ""PACKAGEA"" : {
+                                    ""version"" : ""1.0.0"",
+                                    ""generatePathProperty"": true,
+                                    ""target"": ""package""
+                                }
                             }
                         }
                     }
@@ -674,19 +681,12 @@ namespace NuGet.Commands.Test
 
                 var spec = JsonPackageSpecReader.GetPackageSpec(referenceSpec, projectName, Path.Combine(projectDirectory, projectName)).WithTestRestoreMetadata();
 
-                spec.Dependencies.Add(new LibraryDependency
-                {
-                    GeneratePathProperty = true,
-                    IncludeType = LibraryIncludeFlags.All,
-                    LibraryRange = new LibraryRange(identity.Id.ToUpperInvariant(), new VersionRange(identity.Version), LibraryDependencyTarget.Package)
-                });
-
                 var targetGraphs = new List<RestoreTargetGraph>
                 {
                     OriginalCaseGlobalPackageFolderTests.GetRestoreTargetGraph(pathContext.PackageSource, identity, packagePath, logger)
                 };
 
-                targetGraphs[0].Graphs.FirstOrDefault().Item.Data.Dependencies = spec.Dependencies.ToList();
+                targetGraphs[0].Graphs.FirstOrDefault().Item.Data.Dependencies = spec.TargetFrameworks[0].Dependencies.ToList();
 
                 var lockFile = new LockFile
                 {
@@ -776,6 +776,9 @@ namespace NuGet.Commands.Test
                     ""frameworks"": {
                         ""netcoreapp1.0"": {
                             ""dependencies"": {
+                                ""packagea"" : {
+                                    ""version"" : ""1.0.0"",
+                                }
                             }
                         }
                     }
@@ -786,18 +789,12 @@ namespace NuGet.Commands.Test
 
                 var spec = JsonPackageSpecReader.GetPackageSpec(referenceSpec, projectName, Path.Combine(projectDirectory, projectName)).WithTestRestoreMetadata();
 
-                spec.Dependencies.Add(new LibraryDependency
-                {
-                    IncludeType = LibraryIncludeFlags.All,
-                    LibraryRange = new LibraryRange(identity.Id, new VersionRange(identity.Version), LibraryDependencyTarget.Package)
-                });
-
                 var targetGraphs = new List<RestoreTargetGraph>
                 {
                     OriginalCaseGlobalPackageFolderTests.GetRestoreTargetGraph(pathContext.PackageSource, identity, packagePath, logger)
                 };
 
-                targetGraphs[0].Graphs.FirstOrDefault().Item.Data.Dependencies = spec.Dependencies.ToList();
+                targetGraphs[0].Graphs.FirstOrDefault().Item.Data.Dependencies = spec.TargetFrameworks[0].Dependencies.ToList();
 
                 var lockFile = new LockFile
                 {
@@ -847,7 +844,7 @@ namespace NuGet.Commands.Test
 
                 var expectedPropertyName = $"Pkg{identity.Id.Replace(".", "_")}";
 
-                var actualPropertyElement = outputFiles.FirstOrDefault().Content.Root.Descendants().Where(i => i.Name.LocalName.Equals(expectedPropertyName)).FirstOrDefault();
+                var actualPropertyElement = outputFiles.FirstOrDefault().Content.Root.Descendants().FirstOrDefault(i => i.Name.LocalName.Equals(expectedPropertyName));
 
                 if (hasTools)
                 {
@@ -930,8 +927,8 @@ namespace NuGet.Commands.Test
             using (var randomProjectDirectory = TestDirectory.Create())
             {
                 var filePath = Path.Combine(randomProjectDirectory, "propsXML.xml");
-                var internalSubset = @"<!ENTITY greeting ""Hello"">	
-   <!ENTITY name ""NuGet Client "">	
+                var internalSubset = @"<!ENTITY greeting ""Hello"">
+   <!ENTITY name ""NuGet Client "">
    <!ENTITY sayhello ""&greeting; &name;"">";
                 var newValue = "&sayhello;";
 

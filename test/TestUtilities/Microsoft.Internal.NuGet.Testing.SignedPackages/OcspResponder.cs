@@ -1,23 +1,18 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#nullable enable
 #pragma warning disable CS1591
 
 using System;
 using System.Collections.Concurrent;
-#if IS_SIGNING_SUPPORTED
 using System.Collections.Generic;
 using System.Formats.Asn1;
 using System.Net;
 using System.Numerics;
 using System.Security.Cryptography;
-#endif
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
-#if IS_SIGNING_SUPPORTED
 using Microsoft.Internal.NuGet.Testing.SignedPackages.Asn1;
-#endif
 
 namespace Microsoft.Internal.NuGet.Testing.SignedPackages
 {
@@ -26,7 +21,6 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages
     {
         private const string RequestContentType = "application/ocsp-request";
         private const string ResponseContentType = "application/ocsp-response";
-
         private readonly OcspResponderOptions _options;
         private readonly ConcurrentDictionary<string, DateTimeOffset> _responses;
 
@@ -56,7 +50,6 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages
             return new OcspResponder(certificateAuthority, options);
         }
 
-#if IS_SIGNING_SUPPORTED
         public override void Respond(HttpListenerContext context)
         {
             if (context == null)
@@ -109,7 +102,6 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages
 
             return null;
         }
-#endif
 
         public Task WaitForResponseExpirationAsync(X509Certificate2 certificate)
         {
@@ -132,8 +124,6 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages
             return Task.CompletedTask;
         }
 
-
-#if IS_SIGNING_SUPPORTED
         internal OcspResponse BuildOcspResponse(
             OcspRequest ocspRequest,
             out List<X509Certificate2> certificateChain,
@@ -232,6 +222,5 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages
             // CodeQL [SM03799] This is test code. This is a test OCSP responder for local testing of various signing and verification scenarios in the product. We need to support the default for CMS and X.509 signing, which is PKCS #1 v1.5. See internal bug 2287166.
             return CertificateAuthority.KeyPair.SignData(tbsResponseData, hashAlgorithmName, RSASignaturePadding.Pkcs1);
         }
-#endif
     }
 }

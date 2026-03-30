@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -25,15 +27,6 @@ namespace NuGet.Protocol
         /// <summary>
         /// Download packages using the download url found in the registration resource.
         /// </summary>
-        [Obsolete("Use constructor with source parameter")]
-        public DownloadResourceV3(HttpSource client, RegistrationResourceV3 regResource)
-            : this(source: null, client, regResource)
-        {
-        }
-
-        /// <summary>
-        /// Download packages using the download url found in the registration resource.
-        /// </summary>
         public DownloadResourceV3(string source, HttpSource client, RegistrationResourceV3 regResource)
             : this(client)
         {
@@ -44,15 +37,6 @@ namespace NuGet.Protocol
 
             _source = source;
             _regResource = regResource;
-        }
-
-        /// <summary>
-        /// Download packages using the package base address container resource.
-        /// </summary>
-        [Obsolete("Use constructor with source parameter")]
-        public DownloadResourceV3(HttpSource client, string packageBaseAddress)
-            : this(source: null, client, packageBaseAddress)
-        {
         }
 
         /// <summary>
@@ -88,6 +72,8 @@ namespace NuGet.Protocol
         /// </summary>
         private async Task<Uri> GetDownloadUrl(PackageIdentity identity, ILogger log, CancellationToken token)
         {
+            PackageIdValidator.Validate(identity.Id);
+
             Uri downloadUri = null;
             var sourcePackage = identity as SourcePackageDependencyInfo;
 

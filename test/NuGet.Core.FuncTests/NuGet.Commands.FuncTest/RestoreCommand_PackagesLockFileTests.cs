@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -202,7 +204,7 @@ namespace NuGet.Commands.FuncTest
                 result.Success.Should().BeFalse();
                 logger.ErrorMessages.Count.Should().Be(1);
                 logger.ErrorMessages.Single().Should().Contain("NU1004");
-                logger.ErrorMessages.Single().Should().Contain("The package references have changed for net46. Lock file's package references: a:[1.0.0, ), project's package references: a:[1.0.0, ), b:[1.0.0, )");
+                logger.ErrorMessages.Single().Should().Contain("The package references have changed for net46. Lock file's package references: a:[1.0.0, ), project's package references: a >= 1.0.0, b >= 1.0.0");
             }
         }
 

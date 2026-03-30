@@ -1,8 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#nullable enable
-
 using System;
 using System.Collections.Generic;
 using System.Formats.Asn1;
@@ -61,8 +59,11 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages.Asn1
                 while (certsSequenceReader.HasData)
                 {
                     ReadOnlyMemory<byte> data = certsSequenceReader.ReadEncodedValue();
+#if NET9_0_OR_GREATER
+                    X509Certificate2 certificate = X509CertificateLoader.LoadCertificate(data.Span.ToArray());
+#else
                     X509Certificate2 certificate = new(data.Span.ToArray());
-
+#endif
                     certs.Add(certificate);
                 }
             }

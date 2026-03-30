@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -12,11 +14,8 @@ using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Packaging.Signing;
 using static NuGet.Commands.TrustedSignersArgs;
-
-#if IS_SIGNING_SUPPORTED
 using NuGet.Packaging;
 using NuGet.Protocol;
-#endif
 
 namespace NuGet.Commands
 {
@@ -60,7 +59,6 @@ namespace NuGet.Commands
 
                     if (isPackagePathProvided)
                     {
-#if IS_SIGNING_SUPPORTED
                         if (isServiceIndexProvided || isFingerprintProvided || isAlgorithmProvided)
                         {
                             throw new CommandLineArgumentCombinationException(string.Format(CultureInfo.CurrentCulture, Strings.Error_CouldNotAdd, Strings.Error_InvalidCombinationOfArguments));
@@ -117,10 +115,6 @@ namespace NuGet.Commands
                         }
 
                         break;
-
-#else
-                        throw new NotSupportedException();
-#endif
                     }
 
                     if (isServiceIndexProvided)

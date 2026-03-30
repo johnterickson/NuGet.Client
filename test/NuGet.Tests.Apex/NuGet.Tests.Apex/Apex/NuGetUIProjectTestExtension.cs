@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -69,7 +71,7 @@ namespace NuGet.Tests.Apex
             var packageItemsList = _uiproject.GetPackageItemsOnInstalledTab();
             packageItemsList.Should().NotBeNull("Package items list is empty on installed tab.");
 
-            var package = packageItemsList.Where(x => x.Id == packageId).FirstOrDefault();
+            var package = packageItemsList.FirstOrDefault(x => x.Id == packageId);
             package.Should().NotBeNull($"Package items list doesn't contain this package {packageId} on installed tab.");
 
             package.PackageLevel.Should().Be(packageLevel);

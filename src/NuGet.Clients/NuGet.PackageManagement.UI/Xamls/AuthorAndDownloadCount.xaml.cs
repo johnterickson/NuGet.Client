@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Immutable;
 using System.ComponentModel;
@@ -95,7 +97,7 @@ namespace NuGet.PackageManagement.UI
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private void OnPropertyChanged(string propertyName)
+        protected void OnPropertyChanged(string propertyName)
         {
             if (PropertyChanged != null)
             {

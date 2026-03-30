@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -95,6 +97,8 @@ namespace NuGet.Protocol
 
         public string BuildFindPackagesByIdUri(string id)
         {
+            PackageIdValidator.Validate(id);
+
             var uri = string.Format(
                 CultureInfo.InvariantCulture,
                 FindPackagesByIdFormat,
@@ -114,6 +118,8 @@ namespace NuGet.Protocol
             {
                 throw new ArgumentException(nameof(package.Version));
             }
+
+            PackageIdValidator.Validate(package.Id);
 
             var uri = string.Format(
                 CultureInfo.InvariantCulture,

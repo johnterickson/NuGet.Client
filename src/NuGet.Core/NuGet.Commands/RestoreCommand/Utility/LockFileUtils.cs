@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -69,7 +71,7 @@ namespace NuGet.Commands
             var runtimeIdentifier = targetGraph.RuntimeIdentifier;
             var framework = targetFrameworkOverride ?? targetGraph.Framework;
 
-            return cache.GetLockFileTargetLibrary(targetGraph, framework, package, aliases, dependencyType,
+            return cache.GetLockFileTargetLibrary(targetGraph, framework, package, aliases, dependencyType, dependencies,
                 () =>
                 {
                     LockFileTargetLibrary lockFileLib = null;
@@ -84,28 +86,17 @@ namespace NuGet.Commands
 
                     for (var i = 0; i < orderedCriteriaSets.Count; i++)
                     {
-                        if (packageTypes.Contains(PackageType.DotnetTool))
+                        lockFileLib = CreateLockFileTargetLibrary(aliases, library, package, targetGraph.Conventions, dependencyType,
+                             framework, runtimeIdentifier, contentItems, nuspec, packageTypes, orderedCriteriaSets[i].orderedCriteria);
+                        // Check if compatible assets were found.
+                        // If no compatible assets were found and this is the last check
+                        // continue on with what was given, this will fail in the normal
+                        // compat verification.
+                        if (CompatibilityChecker.HasCompatibleAssets(lockFileLib))
                         {
-                            lockFileLib = CreateLockFileTargetLibrary(package.Id, package.Version, packageTypes, targetGraph.Conventions, contentItems, orderedCriteriaSets[i].orderedCriteria);
-                            if (CompatibilityChecker.HasCompatibleToolsAssets(lockFileLib))
-                            {
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            lockFileLib = CreateLockFileTargetLibrary(aliases, library, package, targetGraph.Conventions, dependencyType,
-                                 framework, runtimeIdentifier, contentItems, nuspec, packageTypes, orderedCriteriaSets[i].orderedCriteria);
-                            // Check if compatible assets were found.
-                            // If no compatible assets were found and this is the last check
-                            // continue on with what was given, this will fail in the normal
-                            // compat verification.
-                            if (CompatibilityChecker.HasCompatibleAssets(lockFileLib))
-                            {
-                                fallbackUsed = orderedCriteriaSets[i].fallbackUsed;
-                                // Stop when compatible assets are found.
-                                break;
-                            }
+                            fallbackUsed = orderedCriteriaSets[i].fallbackUsed;
+                            // Stop when compatible assets are found.
+                            break;
                         }
                     }
 
@@ -303,29 +294,6 @@ namespace NuGet.Commands
                 managedCodeConventions.Patterns.MSBuildMultiTargetingFiles);
 
             lockFileLib.BuildMultiTargeting.AddRange(GetBuildItemsForPackageId(buildMultiTargetingGroup, libraryName));
-        }
-
-        private static LockFileTargetLibrary CreateLockFileTargetLibrary(
-            string packageId,
-            NuGetVersion packageVersion,
-            List<PackageType> packageTypes,
-            ManagedCodeConventions managedCodeConventions,
-            ContentItemCollection contentItems,
-            List<SelectionCriteria> orderedCriteria)
-        {
-            var lockFileLib = new LockFileTargetLibrary()
-            {
-                Name = packageId,
-                Version = packageVersion,
-                Type = LibraryType.Package,
-                PackageType = packageTypes
-            };
-
-            lockFileLib.ToolsAssemblies = GetLockFileItems(
-                orderedCriteria,
-                contentItems,
-                managedCodeConventions.Patterns.ToolsAssemblies);
-            return lockFileLib;
         }
 
         private static void AddContentFiles(ManagedCodeConventions managedCodeConventions, LockFileTargetLibrary lockFileLib, NuGetFramework framework, ContentItemCollection contentItems, NuspecReader nuspec)

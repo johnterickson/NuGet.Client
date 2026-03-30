@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,6 +18,8 @@ namespace NuGet.Commands
     {
         private readonly ILogger _innerLogger;
         private readonly ConcurrentQueue<IRestoreLogMessage> _errors;
+        private readonly ConcurrentQueue<IRestoreLogMessage> _suppressedWarnings;
+
         private readonly bool _hideWarningsAndErrors;
         private IEnumerable<RestoreTargetGraph> _restoreTargetGraphs;
         private PackageSpec _projectSpec;
@@ -24,6 +28,8 @@ namespace NuGet.Commands
         public string ProjectPath => _projectSpec?.RestoreMetadata?.ProjectPath;
 
         public IEnumerable<IRestoreLogMessage> Errors => _errors.ToArray();
+        internal IEnumerable<IRestoreLogMessage> SuppressedWarnings => _suppressedWarnings.ToArray();
+
 
         public WarningPropertiesCollection ProjectWarningPropertiesCollection { get; set; }
 
@@ -90,6 +96,7 @@ namespace NuGet.Commands
         {
             _innerLogger = innerLogger;
             _errors = new ConcurrentQueue<IRestoreLogMessage>();
+            _suppressedWarnings = new ConcurrentQueue<IRestoreLogMessage>();
             _hideWarningsAndErrors = hideWarningsAndErrors;
         }
 
@@ -221,23 +228,29 @@ namespace NuGet.Commands
         /// <returns>bool indicating if the message should be suppressed.</returns>
         private bool IsWarningSuppressed(IRestoreLogMessage message)
         {
+            var isWarningSuppressed = false;
             if (message.Level == LogLevel.Warning)
             {
                 // If the ProjectWarningPropertiesCollection is present then test if the warning is suppressed in
                 // project wide no warn or package specific no warn
                 if (ProjectWarningPropertiesCollection?.ApplyNoWarnProperties(message) == true)
                 {
-                    return true;
+                    isWarningSuppressed = true;
                 }
                 else
                 {
                     // Use transitive warning properties only if the project does not suppress the warning
                     // In transitive warning properties look at only the package specific ones as all properties are per package reference.
-                    return TransitiveWarningPropertiesCollection?.ApplyNoWarnProperties(message) == true;
+                    isWarningSuppressed = TransitiveWarningPropertiesCollection?.ApplyNoWarnProperties(message) == true;
                 }
             }
 
-            return false;
+            if (isWarningSuppressed)
+            {
+                _suppressedWarnings.Enqueue(message);
+            }
+
+            return isWarningSuppressed;
         }
 
         /// <summary>

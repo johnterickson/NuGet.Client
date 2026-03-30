@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -37,12 +39,10 @@ namespace NuGet.Packaging
         /// </summary>
         protected Stream ZipReadStream { get; set; }
 
-#if IS_SIGNING_SUPPORTED
         /// <summary>
         /// True if the package is signed
         /// </summary>
         private bool? _isSigned;
-#endif
 
         /// <summary>
         /// Nupkg package reader
@@ -403,9 +403,7 @@ namespace NuGet.Packaging
                 using (var reader = new BinaryReader(bufferedStream, new UTF8Encoding(), leaveOpen: true))
                 using (var stream = SignedPackageArchiveUtility.OpenPackageSignatureFileStream(reader))
                 {
-#if IS_SIGNING_SUPPORTED
                     signature = PrimarySignature.Load(stream);
-#endif
                 }
             }
 
@@ -418,7 +416,6 @@ namespace NuGet.Packaging
 
             ThrowIfZipReadStreamIsNull();
 
-#if IS_SIGNING_SUPPORTED
             if (!_isSigned.HasValue)
             {
                 _isSigned = false;
@@ -436,9 +433,6 @@ namespace NuGet.Packaging
             }
 
             return Task.FromResult(_isSigned.Value);
-#else
-            return TaskResult.False;
-#endif
         }
 
         public override async Task ValidateIntegrityAsync(SignatureContent signatureContent, CancellationToken token)
@@ -457,7 +451,6 @@ namespace NuGet.Packaging
                 throw new SignatureException(Strings.SignedPackageNotSignedOnVerify);
             }
 
-#if IS_SIGNING_SUPPORTED
             using (var bufferedStream = new ReadOnlyBufferedStream(ZipReadStream, leaveOpen: true))
             using (var reader = new BinaryReader(bufferedStream, new UTF8Encoding(), leaveOpen: true))
             using (var hashAlgorithm = signatureContent.HashAlgorithm.GetHashProvider())
@@ -469,7 +462,6 @@ namespace NuGet.Packaging
                     throw new SignatureException(NuGetLogCode.NU3008, Strings.SignaturePackageIntegrityFailure, GetIdentity());
                 }
             }
-#endif
         }
 
         public override string GetContentHash(CancellationToken token, Func<string> GetUnsignedPackageHash = null)
@@ -518,7 +510,6 @@ namespace NuGet.Packaging
 
         public override bool CanVerifySignedPackages(SignedPackageVerifierSettings verifierSettings)
         {
-#if IS_SIGNING_SUPPORTED
             // Mono support has been deprioritized, so verification on Mono is not enabled, tracking issue: https://github.com/NuGet/Home/issues/9027
             if (RuntimeEnvironmentHelper.IsMono)
             {
@@ -550,10 +541,6 @@ namespace NuGet.Packaging
             {
                 return true;
             }
-
-#else
-            return false;
-#endif
         }
 
         protected void ThrowIfZipReadStreamIsNull()

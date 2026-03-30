@@ -1,16 +1,22 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Parsing;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.CommandLineUtils;
 using NuGet.Commands;
 using NuGet.Common;
+
+#if DEBUG
+using NuGet.CommandLine.XPlat.Commands.Package.Update;
+using NuGet.CommandLine.XPlat.Commands.Package.PackageDownload;
+#endif
 
 namespace NuGet.CommandLine.XPlat
 {
@@ -73,15 +79,13 @@ namespace NuGet.CommandLine.XPlat
 
             NuGet.Common.Migrations.MigrationRunner.Run();
 
-            // TODO: Migrating from Microsoft.Extensions.CommandLineUtils.CommandLineApplication to System.Commandline.CliCommand
+            // TODO: Migrating from Microsoft.Extensions.CommandLineUtils.CommandLineApplication to System.Commandline.Command
             // If we are looking to add further commands here, we should also look to redesign this parsing logic at that time
             // See related issues:
             //    - https://github.com/NuGet/Home/issues/11996
             //    - https://github.com/NuGet/Home/issues/11997
             //    - https://github.com/NuGet/Home/issues/13089
-            if ((args.Count() >= 2 && args[0] == "package" && args[1] == "search")
-                || (args.Any() && args[0] == "config")
-                || (args.Any() && args[0] == "why"))
+            if (IsSystemCommandLineParsedCommand(args))
             {
                 Func<ILoggerWithColor> getHidePrefixLogger = () =>
                 {
@@ -89,26 +93,38 @@ namespace NuGet.CommandLine.XPlat
                     return log;
                 };
 
-                CliCommand rootCommand;
+                RootCommand rootCommand = new RootCommand();
+                // Commands called directly from the SDK CLI will use the SDK's common interactive option.
+                Option<bool> interactiveOption = new Option<bool>("--interactive");
+                interactiveOption.Description = Strings.AddPkg_InteractiveDescription;
+                interactiveOption.DefaultValueFactory = _ => Console.IsOutputRedirected;
+
                 if (args[0] == "package")
                 {
-                    rootCommand = new CliCommand("package");
+                    var packageCommand = new Command("package");
+                    rootCommand.Subcommands.Add(packageCommand);
 
-                    PackageSearchCommand.Register(rootCommand, getHidePrefixLogger);
+                    PackageSearchCommand.Register(packageCommand, getHidePrefixLogger);
+#if DEBUG
+                    PackageUpdateCommand.Register(packageCommand, interactiveOption);
+                    PackageDownloadCommand.Register(packageCommand, interactiveOption);
+#endif
                 }
                 else
                 {
-                    rootCommand = new CliCommand("nuget");
+                    var nugetCommand = new Command("nuget");
+                    rootCommand.Subcommands.Add(nugetCommand);
 
+                    ConfigCommand.Register(nugetCommand, getHidePrefixLogger);
                     ConfigCommand.Register(rootCommand, getHidePrefixLogger);
-                    Commands.Why.WhyCommand.Register(rootCommand, getHidePrefixLogger);
+                    Commands.Why.WhyCommand.Register(nugetCommand, Spectre.Console.AnsiConsole.Console);
+                    Commands.Why.WhyCommand.Register(rootCommand, Spectre.Console.AnsiConsole.Console);
                 }
 
                 CancellationTokenSource tokenSource = new CancellationTokenSource();
                 tokenSource.CancelAfter(TimeSpan.FromMinutes(DotnetPackageSearchTimeOut));
                 int exitCodeValue = 0;
-                CliConfiguration config = new(rootCommand);
-                ParseResult parseResult = rootCommand.Parse(args, config);
+                ParseResult parseResult = rootCommand.Parse(args);
 
                 try
                 {
@@ -117,10 +133,7 @@ namespace NuGet.CommandLine.XPlat
                 catch (Exception ex)
                 {
                     LogException(ex, log);
-                    var tokenList = parseResult.Tokens.TakeWhile(token => token.Type == CliTokenType.Argument || token.Type == CliTokenType.Command || token.Type == CliTokenType.Directive).Select(t => t.Value).ToList();
-                    tokenList.Add("-h");
-                    rootCommand.Parse(tokenList).Invoke();
-                    exitCodeValue = 1;
+                    exitCodeValue = ExitCodes.Error;
                 }
 
                 return exitCodeValue;
@@ -225,6 +238,38 @@ namespace NuGet.CommandLine.XPlat
 
             return exitCode;
         }
+
+        private static bool IsSystemCommandLineParsedCommand(string[] args)
+        {
+            if (args.Length == 0)
+            {
+                return false;
+            }
+
+            string arg0 = args[0];
+            if (arg0 == "config" || arg0 == "why")
+            {
+                return true;
+            }
+
+            if (args.Length >= 2 && arg0 == "package")
+            {
+                string arg1 = args[1];
+#if DEBUG
+                if (arg1 == "update" || arg1 == "download")
+                {
+                    return true;
+                }
+#endif
+                if (arg1 == "search")
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
 
         internal static void LogException(Exception e, ILogger log)
         {

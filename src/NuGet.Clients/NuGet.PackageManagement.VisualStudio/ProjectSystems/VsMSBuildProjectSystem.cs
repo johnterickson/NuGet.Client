@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -501,11 +503,11 @@ namespace NuGet.PackageManagement.VisualStudio
                         await NuGetUIThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
                         await InitForBindingRedirectsAsync();
-                        if (IsBindingRedirectSupported && VSSolutionManager != null)
+                        if (IsBindingRedirectSupported && _vsSolutionManager != null)
                         {
-                            await RuntimeHelpers.AddBindingRedirectsAsync(VSSolutionManager,
+                            await RuntimeHelpers.AddBindingRedirectsAsync(_vsSolutionManager,
                                 VsProjectAdapter,
-                                VSFrameworkMultiTargeting,
+                                _vsFrameworkMultiTargeting,
                                 NuGetProjectContext);
                         }
                     }
@@ -532,16 +534,16 @@ namespace NuGet.PackageManagement.VisualStudio
         }
 
         private readonly bool _bindingRedirectsRelatedInitialized = false;
-        private VSSolutionManager VSSolutionManager { get; set; }
-        private IVsFrameworkMultiTargeting VSFrameworkMultiTargeting { get; set; }
+        private VSSolutionManager _vsSolutionManager;
+        private IVsFrameworkMultiTargeting _vsFrameworkMultiTargeting;
 
         private async Task InitForBindingRedirectsAsync()
         {
             if (!_bindingRedirectsRelatedInitialized)
             {
                 var solutionManager = await ServiceLocator.GetComponentModelServiceAsync<ISolutionManager>();
-                VSSolutionManager = (solutionManager != null) ? (solutionManager as VSSolutionManager) : null;
-                VSFrameworkMultiTargeting = await ServiceLocator.GetGlobalServiceAsync<SVsFrameworkMultiTargeting, IVsFrameworkMultiTargeting>();
+                _vsSolutionManager = (solutionManager != null) ? (solutionManager as VSSolutionManager) : null;
+                _vsFrameworkMultiTargeting = await ServiceLocator.GetGlobalServiceAsync<SVsFrameworkMultiTargeting, IVsFrameworkMultiTargeting>();
             }
         }
 

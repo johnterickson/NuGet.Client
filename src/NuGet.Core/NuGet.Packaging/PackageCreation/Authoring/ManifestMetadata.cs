@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -187,7 +189,7 @@ namespace NuGet.Packaging
 
         public RepositoryMetadata Repository { get; set; }
 
-        private IEnumerable<PackageDependencyGroup> _dependencyGroups = new List<PackageDependencyGroup>();
+        private IEnumerable<PackageDependencyGroup> _dependencyGroups = [];
         public IEnumerable<PackageDependencyGroup> DependencyGroups
         {
             get
@@ -200,11 +202,11 @@ namespace NuGet.Packaging
             }
         }
 
-        public IEnumerable<FrameworkReferenceGroup> FrameworkReferenceGroups { get; set; } = new List<FrameworkReferenceGroup>();
+        public IEnumerable<FrameworkReferenceGroup> FrameworkReferenceGroups { get; set; } = [];
 
-        public IEnumerable<FrameworkAssemblyReference> FrameworkReferences { get; set; } = new List<FrameworkAssemblyReference>();
+        public IEnumerable<FrameworkAssemblyReference> FrameworkReferences { get; set; } = [];
 
-        private IEnumerable<PackageReferenceSet> _packageAssemblyReferences = new List<PackageReferenceSet>();
+        private IEnumerable<PackageReferenceSet> _packageAssemblyReferences = [];
 
         [ManifestVersion(2)]
         public IEnumerable<PackageReferenceSet> PackageAssemblyReferences

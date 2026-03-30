@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -23,6 +25,8 @@ namespace Msbuild.Integration.Test
             //["DEBUG_RESTORE_TASK"] = bool.TrueString,
             ["UNIT_TEST_RESTORE_TASK"] = bool.TrueString,
         };
+
+        internal IReadOnlyDictionary<string, string> DefaultProcessEnvironmentVariables => _processEnvVars;
 
         private readonly Lazy<string> _msbuildPath = new Lazy<string>(() =>
             {
@@ -96,7 +100,7 @@ namespace Msbuild.Integration.Test
         /// <summary>
         /// msbuild.exe args
         /// </summary>
-        internal CommandRunnerResult RunMsBuild(string workingDirectory, string args, bool ignoreExitCode = false, ITestOutputHelper testOutputHelper = null)
+        internal CommandRunnerResult RunMsBuild(string workingDirectory, string args, bool ignoreExitCode = false, ITestOutputHelper testOutputHelper = null, IReadOnlyDictionary<string, string> environmentVariables = null)
         {
             var restoreDllPath = Path.Combine(_testDir, "NuGet.Build.Tasks.dll");
             var nugetRestorePropsPath = Path.Combine(_testDir, "NuGet.props");
@@ -105,7 +109,7 @@ namespace Msbuild.Integration.Test
             var result = CommandRunner.Run(_msbuildPath.Value,
                 workingDirectory,
                 $"/p:NuGetPropsFile={nugetRestorePropsPath} /p:NuGetRestoreTargets={nugetRestoreTargetsPath} /p:RestoreTaskAssemblyFile={restoreDllPath} /p:ImportNuGetBuildTasksPackTargetsFromSdk=true {args}",
-                environmentVariables: _processEnvVars,
+                environmentVariables: environmentVariables ?? DefaultProcessEnvironmentVariables,
                 testOutputHelper: testOutputHelper);
 
             if (!ignoreExitCode)

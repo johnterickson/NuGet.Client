@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -55,7 +57,18 @@ namespace NuGet.CommandLine.XPlat.ListPackage
                 return;
             }
 
-            WriteSources(_consoleOut, listPackageReportModel.ListPackageArgs);
+            if (listPackageReportModel.ListPackageArgs.ReportType == ReportType.Vulnerable && listPackageReportModel.AuditSourcesUsed.Count > 0)
+            {
+                _consoleOut.WriteLine();
+                _consoleOut.WriteLine(Strings.ListPkg_SourcesUsedDescription);
+                PrintSources(_consoleOut, listPackageReportModel.AuditSourcesUsed);
+                _consoleOut.WriteLine();
+            }
+            else
+            {
+                WriteSources(_consoleOut, listPackageReportModel.ListPackageArgs);
+            }
+
             WriteProjects(_consoleOut, _consoleError, listPackageReportModel.Projects, listPackageReportModel.ListPackageArgs);
 
             // Print a legend message for auto-reference markers used

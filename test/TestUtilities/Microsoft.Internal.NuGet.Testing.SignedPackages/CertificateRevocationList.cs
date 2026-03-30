@@ -1,15 +1,12 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-#nullable enable
 #pragma warning disable CS1591
 
 using System;
 using System.IO;
 using System.Numerics;
-#if IS_SIGNING_SUPPORTED
 using System.Security.Cryptography;
-#endif
 using System.Security.Cryptography.X509Certificates;
 
 namespace Microsoft.Internal.NuGet.Testing.SignedPackages
@@ -36,7 +33,6 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages
             _crlBuilder = new CertificateRevocationListBuilder();
         }
 
-#if IS_SIGNING_SUPPORTED
         public void RevokeCertificate(X509Certificate2 revokedCertificate)
         {
             _crlBuilder.AddEntry(revokedCertificate, DateTimeOffset.Now, X509RevocationReason.KeyCompromise);
@@ -67,17 +63,6 @@ namespace Microsoft.Internal.NuGet.Testing.SignedPackages
                 streamWriter.WriteLine($"-----END {label}-----");
             }
         }
-#else
-        public void RevokeCertificate(X509Certificate2 revokedCertificate)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Publish()
-        {
-            throw new NotImplementedException();
-        }
-#endif
 
         public void Dispose()
         {

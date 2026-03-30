@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,6 +14,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NuGet.Packaging;
 using NuGet.Packaging.Core;
+using NuGet.Protocol;
 using NuGet.Versioning;
 
 namespace Test.Utility
@@ -180,17 +183,29 @@ namespace Test.Utility
                 packageIdentities.Select(e =>
                     new KeyValuePair<PackageIdentity, bool>(
                         e,
-                        true)).ToArray());
+                        true)).ToArray(),
+                new HashSet<PackageIdentity>(),
+                null);
         }
 
-        public MockResponse BuildRegistrationIndexResponse(string serverUri, KeyValuePair<PackageIdentity, bool>[] packageIdentityToListed)
+        public MockResponse BuildRegistrationIndexResponse(
+            string serverUri,
+            KeyValuePair<PackageIdentity, bool>[] packageIdentityToListed,
+            ISet<PackageIdentity> deprecatedPackages,
+            IReadOnlyDictionary<string, List<(Uri, PackageVulnerabilitySeverity, VersionRange)>> allVulnerabilities)
         {
             var id = packageIdentityToListed[0].Key.Id.ToLowerInvariant();
             var versions = packageIdentityToListed.Select(
                 e => new KeyValuePair<string, bool>(
                     e.Key.Version.ToNormalizedString().ToLowerInvariant(),
                     e.Value));
-            var registrationIndex = FeedUtilities.CreatePackageRegistrationBlob(serverUri, id, versions);
+            List<(Uri, PackageVulnerabilitySeverity, VersionRange)> packageVulnerabilities = null;
+            if (allVulnerabilities != null && !allVulnerabilities.TryGetValue(id, out packageVulnerabilities))
+            {
+                packageVulnerabilities = null;
+            }
+
+            var registrationIndex = FeedUtilities.CreatePackageRegistrationBlob(serverUri, id, versions, deprecatedPackages, packageVulnerabilities);
 
             return new MockResponse
             {

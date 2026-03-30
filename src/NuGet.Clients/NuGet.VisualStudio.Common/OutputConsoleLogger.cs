@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+#nullable disable
+
 using System;
 using System.ComponentModel.Composition;
 using System.Diagnostics.CodeAnalysis;
@@ -104,7 +106,6 @@ namespace NuGet.VisualStudio.Common
                 await _outputConsole.WriteLineAsync(Resources.Finished);
                 await _outputConsole.WriteLineAsync(string.Empty);
 
-                // Give the error list focus
                 await _errorList.Value.BringToFrontIfSettingsPermitAsync();
             });
         }
